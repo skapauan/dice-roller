@@ -1,0 +1,28 @@
+{
+  "name": "dice-roller",
+  "version": "1.0.0",
+  "description": "App to simulate dice rolls and save your common rolls. Uses true random with fallback to pseudorandom.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skapauan/dice-roller.git"
+  },
+  "author": "skapauan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/skapauan/dice-roller/issues"
+  },
+  "homepage": "https://github.com/skapauan/dice-roller#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "pg": "^8.5.1",
+    "random-org": "^2.1.0",
+    "redis": "^3.0.2"
+  },
+  "devDependencies": {
+    "jest": "^26.6.3"
+  }
+}

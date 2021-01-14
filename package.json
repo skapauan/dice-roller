@@ -4,6 +4,7 @@
   "description": "App to simulate dice rolls and save your common rolls. Uses true random with fallback to pseudorandom.",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

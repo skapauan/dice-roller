@@ -4,5 +4,5 @@ App to simulate dice rolls and save your common rolls. Uses true random with fal
 ## Setup
 
 ### Environment Variables
-`PORT` - Port to run the server on.
-`RANDOMORG_API_KEY` - API key for Random.org.
+- `PORT` - Port to run the server on.
+- `RANDOMORG_API_KEY` - API key for Random.org.

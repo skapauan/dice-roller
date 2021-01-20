@@ -20,6 +20,7 @@
   "dependencies": {
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "passport": "^0.4.1",
     "pg": "^8.5.1",
     "random-org": "^2.1.0",
     "redis": "^3.0.2"

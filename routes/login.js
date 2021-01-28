@@ -7,7 +7,7 @@ router.use(bodyParser.json())
 router.route('/')
 .post((req, res, next) => {
     res.setHeader('Content-Type', 'application/json')
-    if (req.body.user === process.env.INITIAL_ADMIN) {
+    if (req.body.user === process.env.INITIAL_ADMIN && req.body.password === process.env.INITIAL_PASSWORD) {
         res.statusCode = 200
         res.json({ success: true })
     } else {

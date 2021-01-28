@@ -41,4 +41,20 @@ describe('Login service', () => {
             })
     })
 
+    it('should reject login using a wrong INITIAL_PASSWORD value upon initial app setup',
+    async () => {
+        await request(app)
+            .post('/')
+            .type('application/json')
+            .send({ user: process.env.INITIAL_ADMIN, password: 'ThisIsNotThePasswordYouAreLookingFor' })
+            .expect(401)
+            .expect('Content-Type', /json/)
+            .expect((res) => {
+                if (!('success' in res.body))
+                    throw new Error('Success info not included in response')
+                else if (res.body.success !== false)
+                    throw new Error('Success is not false')
+            })
+    })
+
 })

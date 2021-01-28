@@ -1,6 +1,4 @@
-if (process.env.NODE_ENV !== 'production') {
-    require('dotenv').config()
-}
+if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 const server = require('./server')
 const port = process.env.PORT || 3000
 const hasRandomKey = process.env.RANDOMORG_API_KEY ? true : false;

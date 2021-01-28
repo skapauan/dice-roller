@@ -5,10 +5,23 @@
     </head>
     <body>
         <h1>Dice Roller</h1>
-        <form action="/login" method="POST">
+        <form>
             <label>User <input type="text" name="user" id="user"></label>
             <label>Password <input type="password" name="password" id="password"></label>
-            <input type="submit" value="Login">
+            <input type="submit" value="Login" onclick="SubmitForm(event)">
         </form>
+        <p id="outcome"></p>
     </body>
+    <script type="text/javascript">
+        function SubmitForm(event) {
+            event.preventDefault()
+            fetch('login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({user: user.value, password: password.value})
+            })
+            .then(function (res) { return res.json() })
+            .then(function (data) { document.getElementById('outcome').innerText = data.success })
+        }
+    </script>
 </html>

@@ -27,7 +27,9 @@ const db = {
     init: (config) => {
         if (!pool) {
             pool = new Pool(config)
+            return true
         }
+        return false
     },
     testConnection: () => {
         return pool.query('SELECT NOW()')
@@ -35,7 +37,10 @@ const db = {
     end: () => {
         if (pool) {
             pool.end()
+            pool = undefined
+            return true
         }
+        return false
     }
 }
 

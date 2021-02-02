@@ -22,6 +22,12 @@ const configForTest = mapEnvToConfig({
     password: 'TEST_PGPASSWORD'
 })
 
+const checkPool = () => {
+    if (!pool) {
+        throw new Error('Must init DB before using')
+    }
+}
+
 const db = {
     configForTest,
     init: (config) => {
@@ -31,8 +37,24 @@ const db = {
         }
         return false
     },
+    query: (statement) => {
+        checkPool()
+        return pool.query(statement)
+    },
+    setup: () => {
+        return db.query(
+            `CREATE TABLE IF NOT EXISTS users (
+                user_id INT GENERATED ALWAYS AS IDENTITY,
+                email VARCHAR(320),
+                password TEXT,
+                hash TEXT,
+                nickname TEXT,
+                admin BOOL DEFAULT 'f'
+            );`
+        )
+    },
     testConnection: () => {
-        return pool.query('SELECT NOW()')
+        return db.query('SELECT NOW()')
     },
     end: () => {
         if (pool) {

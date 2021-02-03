@@ -41,6 +41,10 @@ const db = {
         checkPool()
         return pool.query(statement)
     },
+    getClient: () => {
+        checkPool()
+        return pool.connect()
+    },
     setup: () => {
         return db.query(
             `CREATE TABLE IF NOT EXISTS users (
@@ -53,8 +57,22 @@ const db = {
             );`
         )
     },
-    testConnection: () => {
-        return db.query('SELECT NOW()')
+    usersIsEmpty: (client) => {
+        return (client || db)
+        .query(`SELECT CASE WHEN EXISTS (SELECT 1 FROM users) THEN 0 ELSE 1 END AS isempty`)
+        .then((result) => {
+            if (result.rows.length === 1) {
+                if (result.rows[0].isempty === 0) {
+                    return false
+                }
+                if (result.rows[0].isempty === 1) {
+                    return true
+                }
+                throw new Error('Unexpected format in result')
+            } else {
+                throw new Error('Unexpected number of rows in result')
+            }
+        })
     },
     end: () => {
         if (pool) {

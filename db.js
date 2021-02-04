@@ -37,15 +37,19 @@ const db = {
         }
         return false
     },
-    query: (statement) => {
-        checkPool()
-        return pool.query(statement)
-    },
     getClient: () => {
         checkPool()
         return pool.connect()
     },
-    setup: () => {
+    query: (statement, client) => {
+        checkPool()
+        if (client && typeof client.query === 'function') {
+            return client.query(statement)
+        } else {
+            return pool.query(statement)
+        }
+    },
+    setup: (client) => {
         return db.query(
             `CREATE TABLE IF NOT EXISTS users (
                 user_id INT GENERATED ALWAYS AS IDENTITY,
@@ -55,11 +59,13 @@ const db = {
                 nickname TEXT,
                 admin BOOL DEFAULT 'f'
             );`
+            , client
         )
     },
     usersIsEmpty: (client) => {
-        return (client || db)
-        .query(`SELECT CASE WHEN EXISTS (SELECT 1 FROM users) THEN 0 ELSE 1 END AS isempty`)
+        return db.query(
+            `SELECT CASE WHEN EXISTS (SELECT 1 FROM users) THEN 0 ELSE 1 END AS isempty`
+            , client)
         .then((result) => {
             if (result.rows.length === 1) {
                 if (result.rows[0].isempty === 0) {

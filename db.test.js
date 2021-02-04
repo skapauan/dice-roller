@@ -27,7 +27,7 @@ describe('DB manager', () => {
         it('should return true if users table is empty', async () => {
             const client = await db.getClient()
             try {
-                await client.query('TRUNCATE TABLE users;')
+                await db.query('TRUNCATE TABLE users;', client)
                 const result = await db.usersIsEmpty(client)
                 expect(result).toEqual(true)
             } catch (error) {
@@ -40,8 +40,10 @@ describe('DB manager', () => {
         it('should return false if users table is not empty', async () => {
             const client = await db.getClient()
             try {
-                await client.query(`INSERT INTO users (email, nickname)
-                    VALUES ('squirrel@example.com', 'Squirrel');`)
+                await db.query(
+                    `INSERT INTO users (email, nickname)
+                        VALUES ('squirrel@example.com', 'Squirrel');`
+                    , client)
                 const result = await db.usersIsEmpty(client)
                 expect(result).toEqual(false)
             } catch (error) {

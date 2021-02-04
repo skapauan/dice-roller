@@ -24,34 +24,31 @@ describe('DB manager', () => {
 
     describe('usersIsEmpty', () => {
 
-        it('should return true if users table is empty', () => {
-            return db.getClient()
-            .then((client) => {
-                client.query('TRUNCATE TABLE users;')
-                return client
-            })
-            .then((client) => {
-                return db.usersIsEmpty(client)
-                .then((result) => {
-                    expect(result).toEqual(true)
-                    client.release()
-                })
-            })
+        it('should return true if users table is empty', async () => {
+            const client = await db.getClient()
+            try {
+                await client.query('TRUNCATE TABLE users;')
+                const result = await db.usersIsEmpty(client)
+                expect(result).toEqual(true)
+            } catch (error) {
+                client.release()
+                throw error
+            }
+            client.release()
         })
 
-        it('should return false if users table is not empty', () => {
-            return db.getClient()
-            .then((client) => {
-                client.query(`INSERT INTO users (email, nickname) VALUES ('squirrel@example.com', 'Squirrel');`)
-                return client
-            })
-            .then((client) => {
-                return db.usersIsEmpty(client)
-                .then((result) => {
-                    expect(result).toEqual(false)
-                    client.release()
-                })
-            })
+        it('should return false if users table is not empty', async () => {
+            const client = await db.getClient()
+            try {
+                await client.query(`INSERT INTO users (email, nickname)
+                    VALUES ('squirrel@example.com', 'Squirrel');`)
+                const result = await db.usersIsEmpty(client)
+                expect(result).toEqual(false)
+            } catch (error) {
+                client.release()
+                throw error
+            }
+            client.release()
         })
 
     })

@@ -53,7 +53,7 @@ const db = {
         return db.query(
             `CREATE TABLE IF NOT EXISTS users (
                 user_id INT GENERATED ALWAYS AS IDENTITY,
-                email VARCHAR(320),
+                email VARCHAR(320) NOT NULL UNIQUE,
                 password TEXT,
                 hash TEXT,
                 nickname TEXT,

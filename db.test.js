@@ -55,6 +55,59 @@ describe('DB manager', () => {
 
     })
 
+    describe('lookupUser', () => {
+
+        it('should return info for a user that has the email', async () => {
+            const client = await db.getClient()
+            try {
+                const email = 'chipmunk@example.com'
+                const nickname ='Chipmunk'
+                const password = 'password' + parseInt(Math.random() * 1000000000, 10)
+                const hash = 'hash ' + new Date().toString()
+                const admin = true
+                await db.query({
+                    text: 'DELETE FROM users WHERE email = $1',
+                    values: [email]
+                }, client)
+                await db.query({
+                    text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
+                    values: [email, nickname, password, hash, admin]
+                }, client)
+                const result = await db.lookupUser(email, client)
+                expect(result).toMatchObject({
+                    email,
+                    nickname,
+                    password,
+                    hash,
+                    admin
+                })
+                expect(typeof result.user_id).toEqual('number')
+            } catch (error) {
+                client.release()
+                throw error
+            }
+            client.release()
+        })
+
+        it ('should return null if no user has the email', async () => {
+            const client = await db.getClient()
+            try {
+                const email = 'vole@example.com'
+                await db.query({
+                    text: 'DELETE FROM users WHERE email = $1',
+                    values: [email]
+                }, client)
+                const result = await db.lookupUser(email, client)
+                expect(result).toBeNull()
+            } catch (error) {
+                client.release()
+                throw error
+            }
+            client.release()
+        })
+
+    })
+
 })
 
 afterAll(() => {

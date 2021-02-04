@@ -2,8 +2,7 @@ if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 const db = require('./db')
 
 beforeAll(async () => {
-    db.init(db.configForTest)
-    await db.setup()
+    await db.init()
 })
 
 describe('DB manager', () => {

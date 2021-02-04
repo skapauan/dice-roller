@@ -32,10 +32,21 @@ const db = {
     configForTest,
     init: (config) => {
         if (!pool) {
+            if (config === undefined && process.env.NODE_ENV === 'test') {
+                config = configForTest
+            }
             pool = new Pool(config)
-            return true
         }
-        return false
+        return db.query(
+            `CREATE TABLE IF NOT EXISTS users (
+                user_id INT GENERATED ALWAYS AS IDENTITY,
+                email VARCHAR(320) NOT NULL UNIQUE,
+                password TEXT,
+                hash TEXT,
+                nickname TEXT,
+                admin BOOL DEFAULT 'f'
+            );`
+        )
     },
     getClient: () => {
         checkPool()
@@ -48,19 +59,6 @@ const db = {
         } else {
             return pool.query(statement)
         }
-    },
-    setup: (client) => {
-        return db.query(
-            `CREATE TABLE IF NOT EXISTS users (
-                user_id INT GENERATED ALWAYS AS IDENTITY,
-                email VARCHAR(320) NOT NULL UNIQUE,
-                password TEXT,
-                hash TEXT,
-                nickname TEXT,
-                admin BOOL DEFAULT 'f'
-            );`
-            , client
-        )
     },
     usersIsEmpty: (client) => {
         return db.query(

@@ -5,6 +5,10 @@ beforeAll(async () => {
     await db.init()
 })
 
+afterAll(() => {
+    db.end()
+})
+
 describe('DB manager', () => {
 
     it('should connect to DB successfully', () => {
@@ -26,30 +30,30 @@ describe('DB manager', () => {
         it('should return true if users table is empty', async () => {
             const client = await db.getClient()
             try {
-                await db.query('TRUNCATE TABLE users;', client)
+                await db.query(`DELETE FROM users;`, client)
                 const result = await db.usersIsEmpty(client)
                 expect(result).toEqual(true)
             } catch (error) {
-                client.release()
                 throw error
+            } finally {
+                client.release()
             }
-            client.release()
         })
 
         it('should return false if users table is not empty', async () => {
             const client = await db.getClient()
             try {
-                await db.query(
-                    `INSERT INTO users (email, nickname)
-                        VALUES ('squirrel@example.com', 'Squirrel');`
-                    , client)
+                await db.query({
+                    text: `INSERT INTO users (email, nickname) VALUES ($1, $2);`,
+                    values: ['squirrel@example.com', 'Squirrel']
+                }, client)
                 const result = await db.usersIsEmpty(client)
                 expect(result).toEqual(false)
             } catch (error) {
-                client.release()
                 throw error
+            } finally {
+                client.release()
             }
-            client.release()
         })
 
     })
@@ -65,7 +69,7 @@ describe('DB manager', () => {
                 const hash = 'hash ' + new Date().toString()
                 const admin = true
                 await db.query({
-                    text: 'DELETE FROM users WHERE email = $1',
+                    text: 'DELETE FROM users WHERE email = $1;',
                     values: [email]
                 }, client)
                 await db.query({
@@ -82,10 +86,10 @@ describe('DB manager', () => {
                 })
                 expect(typeof result.user_id).toEqual('number')
             } catch (error) {
-                client.release()
                 throw error
+            } finally {
+                client.release()
             }
-            client.release()
         })
 
         it ('should return null if no user has the email', async () => {
@@ -99,16 +103,12 @@ describe('DB manager', () => {
                 const result = await db.lookupUser(email, client)
                 expect(result).toBeNull()
             } catch (error) {
-                client.release()
                 throw error
+            } finally {
+                client.release()
             }
-            client.release()
         })
 
     })
 
-})
-
-afterAll(() => {
-    db.end()
 })

@@ -2,59 +2,67 @@ if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 const request = require('supertest')
 const express = require('express')
 const router = require('./login')
+const db = require('../db')
 
 const app = express()
 app.use(express.json())
 app.use('/', router)
 
+beforeAll(async () => {
+    await db.init()
+})
+
+afterAll(() => {
+    db.end()
+})
+
 describe('Login service', () => {
 
-    it('should accept login using INITIAL_ADMIN and INITIAL_PASSWORD upon initial app setup',
-    async () => {
-        await request(app)
-            .post('/')
-            .type('application/json')
-            .send({ user: process.env.INITIAL_ADMIN, password: process.env.INITIAL_PASSWORD })
-            .expect(200)
-            .expect('Content-Type', /json/)
-            .expect((res) => {
-                if (!('success' in res.body))
-                    throw new Error('Success info not included in response')
-                if (res.body.success !== true)
-                    throw new Error('Success is not true')
-            })
-    })
+    describe('before any users created', () => {
 
-    it('should reject login using a wrong INITIAL_ADMIN value upon initial app setup',
-    async () => {
-        await request(app)
-            .post('/')
-            .type('application/json')
-            .send({ user: 'ThisUserIsNotTheAdmin@example.com', password: process.env.INITIAL_PASSWORD })
-            .expect(401)
-            .expect('Content-Type', /json/)
-            .expect((res) => {
-                if (!('success' in res.body))
-                    throw new Error('Success info not included in response')
-                else if (res.body.success !== false)
-                    throw new Error('Success is not false')
-            })
-    })
+        beforeEach(async () => {
+            await db.query('DELETE FROM users;')
+        })
 
-    it('should reject login using a wrong INITIAL_PASSWORD value upon initial app setup',
-    async () => {
-        await request(app)
-            .post('/')
-            .type('application/json')
-            .send({ user: process.env.INITIAL_ADMIN, password: 'ThisIsNotThePasswordYouAreLookingFor' })
-            .expect(401)
-            .expect('Content-Type', /json/)
-            .expect((res) => {
-                if (!('success' in res.body))
-                    throw new Error('Success info not included in response')
-                else if (res.body.success !== false)
-                    throw new Error('Success is not false')
-            })
+        it('should accept login using INITIAL_ADMIN and INITIAL_PASSWORD',
+        async () => {
+            await request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: process.env.INITIAL_ADMIN, password: process.env.INITIAL_PASSWORD })
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expect(res.body).toHaveProperty('success', true)
+                })
+        })
+    
+        it('should reject login using a wrong INITIAL_ADMIN value',
+        async () => {
+            await request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: 'ThisUserIsNotTheAdmin@example.com', password: process.env.INITIAL_PASSWORD })
+                .expect(401)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expect(res.body).toHaveProperty('success', false)
+                })
+        })
+    
+        it('should reject login using a wrong INITIAL_PASSWORD value',
+        async () => {
+            await request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: process.env.INITIAL_ADMIN, password: 'ThisIsNotThePasswordYouAreLookingFor' })
+                .expect(401)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expect(res.body).toHaveProperty('success', false)
+                })
+        })
+
     })
 
 })

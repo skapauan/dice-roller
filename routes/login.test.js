@@ -18,6 +18,12 @@ afterAll(() => {
 
 describe('Login service', () => {
 
+    const expectFailedLoginBody = (res) => {
+        expect(res.body).toHaveProperty('success', false)
+        expect(res.body).not.toHaveProperty('forceReset')
+        expect(res.body).not.toHaveProperty('resetToken')
+    }
+
     describe('before any users created', () => {
 
         beforeEach(async () => {
@@ -34,6 +40,10 @@ describe('Login service', () => {
                 .expect('Content-Type', /json/)
                 .then((res) => {
                     expect(res.body).toHaveProperty('success', true)
+                    expect(res.body).toHaveProperty('forceReset', true)
+                    expect(res.body).toHaveProperty('resetToken')
+                    expect(typeof res.body.resetToken).toEqual('string')
+                    expect(res.body.resetToken.length).toBeGreaterThan(0)
                 })
         })
     
@@ -46,7 +56,7 @@ describe('Login service', () => {
                 .expect(401)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expect(res.body).toHaveProperty('success', false)
+                    expectFailedLoginBody(res)
                 })
         })
     
@@ -59,7 +69,7 @@ describe('Login service', () => {
                 .expect(401)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expect(res.body).toHaveProperty('success', false)
+                    expectFailedLoginBody(res)
                 })
         })
 

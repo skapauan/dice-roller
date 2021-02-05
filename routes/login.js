@@ -9,7 +9,7 @@ router.route('/')
     res.setHeader('Content-Type', 'application/json')
     if (req.body.user === process.env.INITIAL_ADMIN && req.body.password === process.env.INITIAL_PASSWORD) {
         res.statusCode = 200
-        res.json({ success: true })
+        res.json({ success: true, forceReset: true, resetToken: 'a token' })
     } else {
         res.statusCode = 401
         res.json({ success: false })

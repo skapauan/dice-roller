@@ -31,8 +31,8 @@ describe('Login service', () => {
         })
 
         it('should accept login using INITIAL_ADMIN and INITIAL_PASSWORD',
-        async () => {
-            await request(app)
+        () => {
+            return request(app)
                 .post('/')
                 .type('application/json')
                 .send({ user: process.env.INITIAL_ADMIN, password: process.env.INITIAL_PASSWORD })
@@ -48,8 +48,8 @@ describe('Login service', () => {
         })
     
         it('should reject login using a wrong INITIAL_ADMIN value',
-        async () => {
-            await request(app)
+        () => {
+            return request(app)
                 .post('/')
                 .type('application/json')
                 .send({ user: 'ThisUserIsNotTheAdmin@example.com', password: process.env.INITIAL_PASSWORD })
@@ -61,8 +61,8 @@ describe('Login service', () => {
         })
     
         it('should reject login using a wrong INITIAL_PASSWORD value',
-        async () => {
-            await request(app)
+        () => {
+            return request(app)
                 .post('/')
                 .type('application/json')
                 .send({ user: process.env.INITIAL_ADMIN, password: 'ThisIsNotThePasswordYouAreLookingFor' })

@@ -25,6 +25,16 @@ describe('DB manager', () => {
         })
     })
 
+    it('should create a pwtokens table', () => {
+        return db.query(`SELECT * FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = 'public' AND TABLE_NAME = 'pwtokens';`)
+        .then((res) => {
+            if (res.rowCount !== 1) {
+                throw new Error('Tokens table not found')
+            }
+        })
+    })
+
     describe('usersIsEmpty', () => {
 
         it('should return true if users table is empty', async () => {

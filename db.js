@@ -88,8 +88,21 @@ const db = {
     },
     lookupUser: (email, client) => {
         return db.query({
-            text: 'SELECT * FROM users WHERE email = $1',
+            text: 'SELECT * FROM users WHERE email = $1;',
             values: [email]
+        }, client)
+        .then((result) => {
+            if (result.rowCount > 0) {
+                return { ...result.rows[0] }
+            } else {
+                return null
+            }
+        })
+    },
+    lookupPwToken: (token, client) => {
+        return db.query({
+            text: 'SELECT * FROM pwtokens WHERE token = $1;',
+            values: [token]
         }, client)
         .then((result) => {
             if (result.rowCount > 0) {

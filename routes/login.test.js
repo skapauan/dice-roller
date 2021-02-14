@@ -2,7 +2,7 @@ if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 const request = require('supertest')
 const express = require('express')
 const router = require('./login')
-const db = require('../db')
+const db = require('../db/db')
 
 const app = express()
 app.use(express.json())

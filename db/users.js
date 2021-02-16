@@ -33,6 +33,13 @@ const usersTable = {
                 return null
             }
         })
+    },
+
+    create: (user, client) => {
+        return db.query({
+            text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
+            values: [user.email, user.nickname, user.password, user.hash, user.admin]
+        })
     }
 
 }

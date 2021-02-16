@@ -79,4 +79,26 @@ describe('Users table', () => {
 
     })
 
+    describe('create', () => {
+
+        it('adds user if no user has the same email yet', async () => {
+            const user = {
+                email: 'shrew@example.com',
+                nickname: 'Shrew',
+                password: 'shrews-are-the-best',
+                hash: '555',
+                admin: false
+            }
+            await db.query({
+                text: 'DELETE FROM users WHERE email = $1;',
+                values: [user.email]
+            })
+            await usersTable.create(user)
+            const info = await usersTable.findByEmail(user.email)
+            expect(info).toMatchObject(user)
+        })
+
+
+    })
+
 })

@@ -39,6 +39,16 @@ const usersTable = {
         return db.query({
             text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
             values: [user.email, user.nickname, user.password, user.hash, user.admin]
+        }, client)
+        .then((result) => {
+            if (result.rowCount > 0) {
+                return true
+            } else {
+                return false
+            }
+        })
+        .catch((error) => {
+            return false
         })
     }
 

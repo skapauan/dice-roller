@@ -81,23 +81,51 @@ describe('Users table', () => {
 
     describe('create', () => {
 
-        it('adds user if no user has the same email yet', async () => {
-            const user = {
-                email: 'shrew@example.com',
-                nickname: 'Shrew',
-                password: 'shrews-are-the-best',
-                hash: '555',
-                admin: false
-            }
-            await db.query({
-                text: 'DELETE FROM users WHERE email = $1;',
-                values: [user.email]
-            })
-            await usersTable.create(user)
-            const info = await usersTable.findByEmail(user.email)
-            expect(info).toMatchObject(user)
+        const email = 'shrew@example.com'
+
+        const user1 = {
+            email,
+            nickname: 'Shrew',
+            password: 'shrews-are-the-best',
+            hash: '555',
+            admin: false
+        }
+
+        const user2 = {
+            email,
+            nickname: 'S. H. Rew',
+            password: 'refined-rodent',
+            hash: '777',
+            admin: true
+        }
+
+        beforeEach(async () => {
+            await db.query(`DELETE FROM users;`)
         })
 
+        it('adds user and returns true if the email is not yet registered',
+        async () => {
+            const result = await usersTable.create(user2)
+            const info = await usersTable.findByEmail(user2.email)
+            expect(info).toMatchObject(user2)
+            expect(result).toEqual(true)
+        })
+
+        it('does not add user and returns false if email is already registered',
+        async () => {
+            const client = await db.getClient()
+            try {
+                await usersTable.create(user1, client)
+                const result = await usersTable.create(user2, client)
+                const info = await usersTable.findByEmail(user2.email, client)
+                expect(info).toMatchObject(user1)
+                expect(result).toEqual(false)
+            } catch (error) {
+                throw error
+            } finally {
+                client.release()
+            }
+        })
 
     })
 

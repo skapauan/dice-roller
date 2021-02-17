@@ -5,6 +5,10 @@ beforeAll(async () => {
     await db.init()
 })
 
+afterAll(() => {
+    db.end()
+})
+
 describe('Password tokens table', () => {
 
     describe('findByToken', () => {

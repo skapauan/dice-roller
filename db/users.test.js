@@ -5,6 +5,10 @@ beforeAll(async () => {
     await db.init()
 })
 
+afterAll(() => {
+    db.end()
+})
+
 describe('Users table', () => {
 
     describe('isEmpty', () => {
@@ -125,6 +129,16 @@ describe('Users table', () => {
             } finally {
                 client.release()
             }
+        })
+
+        it('throws error if no email provided',
+        () => {
+            const createUserWithoutEmail = () => {
+                const user = {...user1}
+                delete user.email
+                return usersTable.create(user)
+            }
+            return expect(createUserWithoutEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_REQUIRED)
         })
 
     })

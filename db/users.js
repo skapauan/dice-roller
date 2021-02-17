@@ -2,6 +2,10 @@ const db = require('./db')
 
 const usersTable = {
 
+    errors: {
+        CREATE_EMAIL_REQUIRED: 'An email is required'
+    },
+
     isEmpty: (client) => {
         return db.query(
             `SELECT CASE WHEN EXISTS (SELECT 1 FROM users) THEN 0 ELSE 1 END AS isempty`
@@ -36,6 +40,9 @@ const usersTable = {
     },
 
     create: (user, client) => {
+        if (typeof user.email !== 'string') {
+            return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_REQUIRED))
+        }
         return db.query({
             text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
             values: [user.email, user.nickname, user.password, user.hash, user.admin]

@@ -103,12 +103,9 @@ describe('Users table', () => {
             admin: true
         }
 
-        beforeEach(async () => {
-            await db.query(`DELETE FROM users;`)
-        })
-
         it('adds user and returns true if the email is not yet registered',
         async () => {
+            await db.query(`DELETE FROM users;`)
             const result = await usersTable.create(user2)
             const info = await usersTable.findByEmail(user2.email)
             expect(info).toMatchObject(user2)
@@ -119,6 +116,7 @@ describe('Users table', () => {
         async () => {
             const client = await db.getClient()
             try {
+                await db.query(`DELETE FROM users;`)
                 await usersTable.create(user1, client)
                 const result = await usersTable.create(user2, client)
                 const info = await usersTable.findByEmail(user2.email, client)
@@ -131,7 +129,7 @@ describe('Users table', () => {
             }
         })
 
-        it('throws error if no email provided',
+        it('rejects and throws if no email property',
         () => {
             const createUserWithoutEmail = () => {
                 const user = {...user1}
@@ -139,6 +137,15 @@ describe('Users table', () => {
                 return usersTable.create(user)
             }
             return expect(createUserWithoutEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_REQUIRED)
+        })
+
+        it('rejects and throws if email is empty string',
+        () => {
+            const createUserWithEmptyEmail = () => {
+                const user = {...user1, email: ''}
+                return usersTable.create(user)
+            }
+            return expect(createUserWithEmptyEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_REQUIRED)
         })
 
     })

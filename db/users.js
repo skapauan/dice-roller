@@ -40,7 +40,7 @@ const usersTable = {
     },
 
     create: (user, client) => {
-        if (typeof user.email !== 'string') {
+        if (!user.email) {
             return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_REQUIRED))
         }
         return db.query({
@@ -51,6 +51,7 @@ const usersTable = {
             if (result.rowCount > 0) {
                 return true
             } else {
+                // We should not reach here
                 return false
             }
         })

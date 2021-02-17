@@ -1,9 +1,11 @@
+const emailValidator = require('email-validator')
 const db = require('./db')
 
 const usersTable = {
 
     errors: {
-        CREATE_EMAIL_REQUIRED: 'An email is required'
+        CREATE_EMAIL_REQUIRED: 'An email is required',
+        CREATE_EMAIL_INVALID: 'Email is invalid'
     },
 
     isEmpty: (client) => {
@@ -42,6 +44,9 @@ const usersTable = {
     create: (user, client) => {
         if (!user.email || typeof user.email !== 'string') {
             return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_REQUIRED))
+        }
+        if (!emailValidator.validate(user.email)) {
+            return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_INVALID))
         }
         return db.query({
             text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,

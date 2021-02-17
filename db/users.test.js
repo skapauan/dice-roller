@@ -103,6 +103,12 @@ describe('Users table', () => {
             admin: true
         }
 
+        it('has error messages defined',
+        () => {
+            expect(usersTable.errors.CREATE_EMAIL_REQUIRED).toBeTruthy()
+            expect(usersTable.errors.CREATE_EMAIL_INVALID).toBeTruthy()
+        })
+
         it('adds user and returns true if the email is not yet registered',
         async () => {
             await db.query(`DELETE FROM users;`)
@@ -155,6 +161,15 @@ describe('Users table', () => {
                 return usersTable.create(user)
             }
             return expect(createUserWithBooleanEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_REQUIRED)
+        })
+
+        it('rejects and throws if email is not valid',
+        () => {
+            const createUserWithInvalidEmail = () => {
+                const user = {...user1, email: 'the-local-part-is-invalid-if-it-is-longer-than-sixty-four-characters@sld.net'}
+                return usersTable.create(user)
+            }
+            return expect(createUserWithInvalidEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_INVALID)
         })
 
     })

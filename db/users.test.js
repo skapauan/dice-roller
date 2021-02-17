@@ -148,6 +148,15 @@ describe('Users table', () => {
             return expect(createUserWithEmptyEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_REQUIRED)
         })
 
+        it('rejects and throws if email is not a string',
+        () => {
+            const createUserWithBooleanEmail = () => {
+                const user = {...user1, email: true}
+                return usersTable.create(user)
+            }
+            return expect(createUserWithBooleanEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_REQUIRED)
+        })
+
     })
 
 })

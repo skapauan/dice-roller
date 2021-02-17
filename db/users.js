@@ -40,7 +40,7 @@ const usersTable = {
     },
 
     create: (user, client) => {
-        if (!user.email) {
+        if (!user.email || typeof user.email !== 'string') {
             return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_REQUIRED))
         }
         return db.query({

@@ -105,7 +105,7 @@ describe('Users table', () => {
 
         it('has error messages defined',
         () => {
-            expect(usersTable.errors.CREATE_EMAIL_REQUIRED).toBeTruthy()
+            expect(usersTable.errors.CREATE_EMAIL_MISSING).toBeTruthy()
             expect(usersTable.errors.CREATE_EMAIL_INVALID).toBeTruthy()
         })
 
@@ -142,7 +142,7 @@ describe('Users table', () => {
                 delete user.email
                 return usersTable.create(user)
             }
-            return expect(createUserWithoutEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_REQUIRED)
+            return expect(createUserWithoutEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_MISSING)
         })
 
         it('rejects and throws if email is empty string',
@@ -151,7 +151,7 @@ describe('Users table', () => {
                 const user = {...user1, email: ''}
                 return usersTable.create(user)
             }
-            return expect(createUserWithEmptyEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_REQUIRED)
+            return expect(createUserWithEmptyEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_MISSING)
         })
 
         it('rejects and throws if email is not a string',
@@ -160,7 +160,7 @@ describe('Users table', () => {
                 const user = {...user1, email: true}
                 return usersTable.create(user)
             }
-            return expect(createUserWithBooleanEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_REQUIRED)
+            return expect(createUserWithBooleanEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_MISSING)
         })
 
         it('rejects and throws if email is not valid',

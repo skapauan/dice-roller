@@ -118,16 +118,19 @@ describe('Users table', () => {
             expect(result).toEqual(true)
         })
 
-        it('does not add user and returns false if email is already registered',
+        it('rejects, throws, and does not affect existing user if email is already registered',
         async () => {
             const client = await db.getClient()
             try {
-                await db.query(`DELETE FROM users;`)
+                await db.query(`DELETE FROM users;`, client)
                 await usersTable.create(user1, client)
-                const result = await usersTable.create(user2, client)
+                const createUserWithExistingUserEmail = () => {
+                    return usersTable.create(user2, client)
+                }
+                await expect(createUserWithExistingUserEmail())
+                    .rejects.toThrow(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE)
                 const info = await usersTable.findByEmail(user2.email, client)
                 expect(info).toMatchObject(user1)
-                expect(result).toEqual(false)
             } catch (error) {
                 throw error
             } finally {

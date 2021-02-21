@@ -5,7 +5,8 @@ const usersTable = {
 
     errors: {
         CREATE_EMAIL_MISSING: 'Email is missing',
-        CREATE_EMAIL_INVALID: 'Email is invalid'
+        CREATE_EMAIL_INVALID: 'Email is invalid',
+        CREATE_EMAIL_ALREADY_IN_USE: 'Email is already in use'
     },
 
     isEmpty: (client) => {
@@ -41,12 +42,20 @@ const usersTable = {
         })
     },
 
-    create: (user, client) => {
+    create: async (user, client) => {
         if (!user.email || typeof user.email !== 'string') {
-            return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_MISSING))
+            throw new Error(usersTable.errors.CREATE_EMAIL_MISSING)
         }
         if (!emailValidator.validate(user.email)) {
-            return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_INVALID))
+            throw new Error(usersTable.errors.CREATE_EMAIL_INVALID)
+        }
+        const email = user.email.trim()
+        const result = await db.query({
+            text: `SELECT CASE WHEN EXISTS (SELECT 1 FROM users WHERE email = $1) THEN 1 ELSE 0 END AS emailfound`,
+            values: [email]
+        })
+        if (result.rows[0].emailfound === 1) {
+            throw new Error(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE)
         }
         return db.query({
             text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,

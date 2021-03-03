@@ -5,7 +5,7 @@ const path = require('path')
 const app = express()
 app.use(passport.initialize())
 app.use(passport.session())
-app.use(express.static(path.join(__dirname, 'public')))
+app.use(express.static(path.join(__dirname, '..', 'public')))
 app.use(express.json())
 app.use('/login', require('./routes/login'))
 

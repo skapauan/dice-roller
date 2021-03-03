@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "rootDir": "./src",
+        "outDir": "./build",
+        "target": "es6",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "isolatedModules": true,
+        "esModuleInterop": true,
+        "strict": true
+    },
+    "exclude": [
+        "src/**/*.test.ts",
+        "node_modules"
+    ]
+}

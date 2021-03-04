@@ -1,5 +1,5 @@
-const pwtokensTable = require('./pwtokens')
-const db = require('./db')
+import pwtokensTable from './pwtokens'
+import db from './db'
 
 beforeAll(async () => {
     await db.init()
@@ -28,7 +28,7 @@ describe('Password tokens table', () => {
             const client = await db.getClient()
             try {
                 await db.query(`DELETE FROM pwtokens;`, client)
-                const values = tokens.reduce((accumulator, current) => {
+                const values = tokens.reduce((accumulator: Array<any>, current) => {
                     accumulator.push(current.token, current.email, current.expires)
                     return accumulator
                 }, [])

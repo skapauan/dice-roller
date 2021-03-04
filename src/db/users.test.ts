@@ -1,5 +1,5 @@
-const usersTable = require('./users')
-const db = require('./db')
+import usersTable from './users'
+import db from './db'
 
 beforeAll(async () => {
     await db.init()
@@ -44,7 +44,7 @@ describe('Users table', () => {
             try {
                 const email = 'chipmunk@example.com'
                 const nickname ='Chipmunk'
-                const password = 'password' + parseInt(Math.random() * 1000000000, 10)
+                const password = 'password' + parseInt((Math.random() * 1000000000).toString(), 10)
                 const hash = 'hash ' + new Date().toString()
                 const admin = true
                 await db.query({
@@ -141,9 +141,8 @@ describe('Users table', () => {
         it('rejects and throws if no email property',
         () => {
             const createUserWithoutEmail = () => {
-                const user = {...user1}
-                delete user.email
-                return usersTable.create(user)
+                const user = { nickname: 'Banksy' }
+                return usersTable.create(user as any)
             }
             return expect(createUserWithoutEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_MISSING)
         })
@@ -161,7 +160,7 @@ describe('Users table', () => {
         () => {
             const createUserWithBooleanEmail = () => {
                 const user = {...user1, email: true}
-                return usersTable.create(user)
+                return usersTable.create(user as any)
             }
             return expect(createUserWithBooleanEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_MISSING)
         })

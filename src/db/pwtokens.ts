@@ -1,8 +1,9 @@
-const db = require('./db')
+import { PoolClient, QueryResult } from 'pg'
+import db from './db'
 
 const pwtokensTable = {
     
-    findByToken: (token, client) => {
+    findByToken: (token: string, client?: PoolClient): Promise<QueryResult> => {
         return db.query({
             text: 'SELECT * FROM pwtokens WHERE token = $1;',
             values: [token]
@@ -18,4 +19,4 @@ const pwtokensTable = {
 
 }
 
-module.exports = pwtokensTable
+export default pwtokensTable

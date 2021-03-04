@@ -1,12 +1,13 @@
-const express = require('express')
-const passport = require('passport')
-const path = require('path')
+import express from 'express'
+import passport from 'passport'
+import path from 'path'
+import loginRoute from './routes/login'
 
 const app = express()
 app.use(passport.initialize())
 app.use(passport.session())
 app.use(express.static(path.join(__dirname, '..', 'public')))
 app.use(express.json())
-app.use('/login', require('./routes/login'))
+app.use('/login', loginRoute)
 
-module.exports = app
+export default app

@@ -1,5 +1,5 @@
-const express = require('express')
-const bodyParser = require('body-parser')
+import express from 'express'
+import bodyParser from 'body-parser'
 
 const router = express.Router()
 router.use(bodyParser.json())
@@ -16,4 +16,4 @@ router.route('/')
     }
 })
 
-module.exports = router
+export default router

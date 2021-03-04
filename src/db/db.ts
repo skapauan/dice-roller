@@ -1,14 +1,18 @@
+import { Pool, PoolClient, PoolConfig, QueryResult } from 'pg'
+
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
-const { Pool } = require('pg')
 
-let pool
+let pool: Pool | undefined
 
-const mapEnvToConfig = (mapping) => {
-    let config
-    Object.keys(mapping).forEach((value, index) => {
-        if (process.env.hasOwnProperty(mapping[value])) {
+interface Mapping {[index: string]: string}
+
+const mapEnvToConfig = (mapping: Mapping): Mapping | undefined => {
+    let config: Mapping | undefined
+    Object.keys(mapping).forEach((key) => {
+        const value: string | undefined = process.env[mapping[key]]
+        if (typeof value === 'string') {
             config = config || {}
-            config[value] = process.env[mapping[value]]
+            config[key] = value
         }
     })
     return config
@@ -22,15 +26,9 @@ const configForTest = mapEnvToConfig({
     password: 'TEST_PGPASSWORD'
 })
 
-const checkPool = () => {
-    if (!pool) {
-        throw new Error('Must init DB before using')
-    }
-}
-
 const db = {
     configForTest,
-    init: (config) => {
+    init: (config?: PoolConfig | undefined): Promise<QueryResult> => {
         if (!pool) {
             if (config === undefined && process.env.NODE_ENV === 'test') {
                 config = configForTest
@@ -56,20 +54,22 @@ const db = {
             );`
         ))
     },
-    getClient: () => {
-        checkPool()
-        return pool.connect()
+    getClient: (): Promise<PoolClient> => {
+        if (pool) {
+            return pool.connect()
+        }
+        return Promise.reject(new Error('Must init DB before using'))
     },
-    query: (statement, client) => {
-        checkPool()
+    query: (statement: any, client?: PoolClient): Promise<QueryResult> => {
         if (client && typeof client.query === 'function') {
             return client.query(statement)
-        } else {
+        } else if (pool) {
             return pool.query(statement)
         }
+        return Promise.reject(new Error('Must init DB before using'))
     },
-    end: () => {
-        if (pool) {
+    end: (): boolean => {
+        if (pool !== undefined) {
             pool.end()
             pool = undefined
             return true
@@ -78,4 +78,4 @@ const db = {
     }
 }
 
-module.exports = db
+export default db

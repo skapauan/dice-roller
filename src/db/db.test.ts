@@ -1,5 +1,6 @@
+import db from './db'
+
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
-const db = require('./db')
 
 beforeAll(async () => {
     await db.init()

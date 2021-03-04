@@ -1,8 +1,9 @@
+import request from 'supertest'
+import express from 'express'
+import router from './login'
+import db from '../db/db'
+
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
-const request = require('supertest')
-const express = require('express')
-const router = require('./login')
-const db = require('../db/db')
 
 const app = express()
 app.use(express.json())
@@ -18,7 +19,7 @@ afterAll(() => {
 
 describe('Login service', () => {
 
-    const expectFailedLoginBody = (res) => {
+    const expectFailedLoginBody = (res: {body: object}): void => {
         expect(res.body).toHaveProperty('success', false)
         expect(res.body).not.toHaveProperty('forceReset')
         expect(res.body).not.toHaveProperty('resetToken')

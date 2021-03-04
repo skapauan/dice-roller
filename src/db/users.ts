@@ -1,5 +1,23 @@
-const emailValidator = require('email-validator')
-const db = require('./db')
+import emailValidator from 'email-validator'
+import { PoolClient, QueryResult } from 'pg'
+import db from './db'
+
+interface User {
+    email: string,
+    nickname?: string,
+    password?: string,
+    hash?: string,
+    admin: boolean
+}
+
+interface UserResult {
+    user_id: number,
+    email: string,
+    nickname: string | null,
+    password: string | null,
+    hash: string | null,
+    admin: boolean
+}
 
 const usersTable = {
 
@@ -9,7 +27,7 @@ const usersTable = {
         CREATE_EMAIL_ALREADY_IN_USE: 'Email is already in use'
     },
 
-    isEmpty: (client) => {
+    isEmpty: (client?: PoolClient): Promise<boolean> => {
         return db.query(
             `SELECT CASE WHEN EXISTS (SELECT 1 FROM users) THEN 0 ELSE 1 END AS isempty`
             , client)
@@ -28,7 +46,7 @@ const usersTable = {
         })
     },
     
-    findByEmail: (email, client) => {
+    findByEmail: (email: string, client?: PoolClient): Promise<UserResult> => {
         return db.query({
             text: 'SELECT * FROM users WHERE email = $1;',
             values: [email]
@@ -42,12 +60,12 @@ const usersTable = {
         })
     },
 
-    create: async (user, client) => {
+    create: async (user: User, client?: PoolClient): Promise<boolean> => {
         if (!user.email || typeof user.email !== 'string') {
-            throw new Error(usersTable.errors.CREATE_EMAIL_MISSING)
+            return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_MISSING))
         }
         if (!emailValidator.validate(user.email)) {
-            throw new Error(usersTable.errors.CREATE_EMAIL_INVALID)
+            return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_INVALID))
         }
         const email = user.email.trim()
         const result = await db.query({
@@ -55,7 +73,7 @@ const usersTable = {
             values: [email]
         })
         if (result.rows[0].emailfound === 1) {
-            throw new Error(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE)
+            return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE))
         }
         return db.query({
             text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
@@ -76,4 +94,4 @@ const usersTable = {
 
 }
 
-module.exports = usersTable
+export default usersTable

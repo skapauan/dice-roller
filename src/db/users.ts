@@ -58,6 +58,20 @@ const usersTable = {
         })
     },
 
+    deleteByEmail: (email: string, client?: PoolClient): Promise<boolean> => {
+        return db.query({
+            text: 'DELETE FROM users WHERE email = $1;',
+            values: [email]
+        }, client)
+        .then((result) => {
+            console.log(result.rowCount)
+            if (result.rowCount > 0) {
+                return true
+            }
+            return false
+        })
+    },
+
     create: async (user: User, client?: PoolClient): Promise<boolean> => {
         if (!emailValidator.validate(user.email)) {
             return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_INVALID))

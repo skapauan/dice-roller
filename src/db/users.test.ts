@@ -86,6 +86,30 @@ describe('Users table', () => {
 
     })
 
+    describe('deleteByEmail', () => {
+
+        it('returns true and removes the user with the email if it exists', async () => {
+            const email = 'capybara@example.com'
+            const createResult = await usersTable.create({email})
+            expect(createResult).toEqual(true)
+            const deleteResult = await usersTable.deleteByEmail(email)
+            expect(deleteResult).toEqual(true)
+            const user = await usersTable.findByEmail(email)
+            expect(user).toBeNull()
+        })
+
+        it('returns false if no user has the email', async () => {
+            const email = 'beaver@example.com'
+            await db.query({
+                text: 'DELETE FROM users WHERE email = $1',
+                values: [email]
+            })
+            const result = await usersTable.deleteByEmail(email)
+            expect(result).toEqual(false)
+        })
+
+    })
+
     describe('create', () => {
 
         const email = 'shrew@example.com'

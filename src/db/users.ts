@@ -53,9 +53,8 @@ const usersTable = {
         .then((result) => {
             if (result.rowCount > 0) {
                 return { ...result.rows[0] }
-            } else {
-                return null
             }
+            return null
         })
     },
 
@@ -67,25 +66,15 @@ const usersTable = {
         const result = await db.query({
             text: `SELECT CASE WHEN EXISTS (SELECT 1 FROM users WHERE email = $1) THEN 1 ELSE 0 END AS emailfound`,
             values: [email]
-        })
+        }, client)
         if (result.rows[0].emailfound === 1) {
             return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE))
         }
-        return db.query({
+        await db.query({
             text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
             values: [user.email, user.nickname, user.password, user.hash, user.admin]
         }, client)
-        .then((result) => {
-            if (result.rowCount > 0) {
-                return true
-            } else {
-                // We should not reach here
-                return false
-            }
-        })
-        .catch((error) => {
-            return false
-        })
+        return true
     }
 
 }

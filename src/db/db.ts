@@ -18,7 +18,7 @@ const mapEnvToConfig = (mapping: Mapping): Mapping | undefined => {
     return config
 }
 
-const configForTest = mapEnvToConfig({
+const configForTest: PoolConfig | undefined = mapEnvToConfig({
     host: 'TEST_PGHOST',
     port: 'TEST_PGPORT',
     database: 'TEST_PGDATABASE',
@@ -27,7 +27,6 @@ const configForTest = mapEnvToConfig({
 })
 
 const db = {
-    configForTest,
     init: (config?: PoolConfig | undefined): Promise<QueryResult> => {
         if (!pool) {
             if (config === undefined && process.env.NODE_ENV === 'test') {

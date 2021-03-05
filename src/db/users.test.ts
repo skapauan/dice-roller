@@ -56,6 +56,9 @@ describe('Users table', () => {
                     values: [email, nickname, password, hash, admin]
                 }, client)
                 const result = await usersTable.findByEmail(email, client)
+                if (!result) {
+                    throw new Error('Result not found')
+                }
                 expect(result).toMatchObject({
                     email,
                     nickname,
@@ -105,7 +108,6 @@ describe('Users table', () => {
 
         it('has error messages defined',
         () => {
-            expect(usersTable.errors.CREATE_EMAIL_MISSING).toBeTruthy()
             expect(usersTable.errors.CREATE_EMAIL_INVALID).toBeTruthy()
         })
 
@@ -138,40 +140,40 @@ describe('Users table', () => {
             }
         })
 
-        it('rejects and throws if no email property',
-        () => {
-            const createUserWithoutEmail = () => {
-                const user = { nickname: 'Banksy' }
-                return usersTable.create(user as any)
-            }
-            return expect(createUserWithoutEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_MISSING)
-        })
-
         it('rejects and throws if email is empty string',
         () => {
             const createUserWithEmptyEmail = () => {
                 const user = {...user1, email: ''}
                 return usersTable.create(user)
             }
-            return expect(createUserWithEmptyEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_MISSING)
+            return expect(createUserWithEmptyEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_INVALID)
         })
 
-        it('rejects and throws if email is not a string',
+        it('rejects and throws if email is whitespace',
         () => {
-            const createUserWithBooleanEmail = () => {
-                const user = {...user1, email: true}
-                return usersTable.create(user as any)
+            const createUserWithWhitespaceEmail = () => {
+                const user = {...user1, email: ' \t'}
+                return usersTable.create(user)
             }
-            return expect(createUserWithBooleanEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_MISSING)
+            return expect(createUserWithWhitespaceEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_INVALID)
         })
 
-        it('rejects and throws if email is not valid',
+        it('rejects and throws if email is invalid',
         () => {
             const createUserWithInvalidEmail = () => {
-                const user = {...user1, email: 'the-local-part-is-invalid-if-it-is-longer-than-sixty-four-characters@sld.net'}
+                const user = {...user1, email: 'null'}
                 return usersTable.create(user)
             }
             return expect(createUserWithInvalidEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_INVALID)
+        })
+
+        it('rejects and throws if email is too long',
+        () => {
+            const createUserWithTooLongEmail = () => {
+                const user = {...user1, email: 'the-local-part-is-invalid-if-it-is-longer-than-sixty-four-characters@sld.net'}
+                return usersTable.create(user)
+            }
+            return expect(createUserWithTooLongEmail()).rejects.toThrow(usersTable.errors.CREATE_EMAIL_INVALID)
         })
 
     })

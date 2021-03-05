@@ -2,27 +2,26 @@ import emailValidator from 'email-validator'
 import { PoolClient, QueryResult } from 'pg'
 import db from './db'
 
-interface User {
-    email: string,
-    nickname?: string,
-    password?: string,
-    hash?: string,
-    admin: boolean
+export interface User {
+    email: string;
+    nickname?: string;
+    password?: string;
+    hash?: string;
+    admin?: boolean;
 }
 
-interface UserResult {
-    user_id: number,
-    email: string,
-    nickname: string | null,
-    password: string | null,
-    hash: string | null,
-    admin: boolean
+export interface UserResult {
+    user_id: number;
+    email: string;
+    nickname: string | null;
+    password: string | null;
+    hash: string | null;
+    admin: boolean;
 }
 
 const usersTable = {
 
     errors: {
-        CREATE_EMAIL_MISSING: 'Email is missing',
         CREATE_EMAIL_INVALID: 'Email is invalid',
         CREATE_EMAIL_ALREADY_IN_USE: 'Email is already in use'
     },
@@ -46,7 +45,7 @@ const usersTable = {
         })
     },
     
-    findByEmail: (email: string, client?: PoolClient): Promise<UserResult> => {
+    findByEmail: (email: string, client?: PoolClient): Promise<UserResult | null> => {
         return db.query({
             text: 'SELECT * FROM users WHERE email = $1;',
             values: [email]
@@ -61,9 +60,6 @@ const usersTable = {
     },
 
     create: async (user: User, client?: PoolClient): Promise<boolean> => {
-        if (!user.email || typeof user.email !== 'string') {
-            return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_MISSING))
-        }
         if (!emailValidator.validate(user.email)) {
             return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_INVALID))
         }

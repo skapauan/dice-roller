@@ -11,18 +11,33 @@ afterAll(() => {
 
 describe('Password tokens table', () => {
 
+    const tokens = [
+        { token: '123', email: 'bananagrams@example.com', expires: new Date('21 May 1990 09:00:00 GMT') },
+        { token: '321', email: 'bananaphone@example.com', expires: new Date('18 Jan 2058 17:00:00 GMT') },
+        { token: '231', email: 'bananasinpajamas@example.com', expires: new Date() }
+    ]
+
+    const absentTokens = [
+        { token: '999', email: 'bananabread@example.com', expires: new Date(0) },
+        { token: '888', email: 'bananabowl@example.com', expires: new Date('23 Sep 1972 06:00:00 GMT') }
+    ]
+
+    describe('create', () => {
+        
+        it('creates a token from valid info and returns the token value', async () => {
+            await db.query('DELETE FROM pwtokens;')
+            const email = tokens[0].email
+            const token = await pwtokensTable.create({ email })
+            expect(token.length).toBeGreaterThan(0)
+            const data = await pwtokensTable.findByToken(token)
+            expect(data).toMatchObject({ token, email })
+            expect(typeof data.expires.getMonth).toEqual('function')
+            expect(data.expires.getTime()).toBeGreaterThan(Date.now())
+        })
+
+    })
+
     describe('findByToken', () => {
-
-        const tokens = [
-            { token: '123', email: 'bananagrams@example.com', expires: new Date('21 May 1990 09:00:00 GMT') },
-            { token: '321', email: 'bananaphone@example.com', expires: new Date('18 Jan 2058 17:00:00 GMT') },
-            { token: '231', email: 'bananasinpajamas@example.com', expires: new Date() }
-        ]
-
-        const absentTokens = [
-            { token: '999', email: 'bananabread@example.com', expires: new Date(0) },
-            { token: '888', email: 'bananabowl@example.com', expires: new Date('23 Sep 1972 06:00:00 GMT') }
-        ]
 
         beforeAll(async () => {
             const client = await db.getClient()

@@ -64,7 +64,6 @@ const usersTable = {
             values: [email]
         }, client)
         .then((result) => {
-            console.log(result.rowCount)
             if (result.rowCount > 0) {
                 return true
             }

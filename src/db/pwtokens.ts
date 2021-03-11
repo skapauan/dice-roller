@@ -1,10 +1,6 @@
 import { PoolClient, QueryResult } from 'pg'
 import db from './db'
 
-export interface TokenCreate {
-    email: string;
-}
-
 export interface TokenResult {
     token: string;
     email: string;
@@ -13,13 +9,13 @@ export interface TokenResult {
 
 const pwtokensTable = {
 
-    create: (data: TokenCreate): string => {
+    create: (user_id: number): string => {
         const token = 'a'
         const expires = new Date()
         expires.setHours( expires.getHours() + 3 );
         db.query({
-            text: 'INSERT INTO pwtokens (token, email, expires) VALUES ($1, $2, $3);',
-            values: [token, data.email, expires]
+            text: 'INSERT INTO pwtokens (token, user_id, expires) VALUES ($1, $2, $3);',
+            values: [token, user_id, expires]
         })
         return token
     },

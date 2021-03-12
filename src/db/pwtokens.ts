@@ -33,6 +33,19 @@ const pwtokensTable = {
                 return null
             }
         })
+    },
+
+    deleteByToken: (token: string, client?: PoolClient): Promise<boolean> => {
+        return db.query({
+            text: 'DELETE FROM pwtokens WHERE token = $1;',
+            values: [token]
+        }, client)
+        .then((result) => {
+            if (result.rowCount > 0) {
+                return true
+            }
+            return false
+        })
     }
 
 }

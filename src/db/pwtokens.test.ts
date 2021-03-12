@@ -175,4 +175,28 @@ describe('Password tokens table', () => {
 
     })
 
+    describe('deleteByToken', () => {
+
+        beforeEach(async () => {
+            await populateTestTokens()
+        })
+
+        it('returns true and deletes an existing token', async () => {
+            const result = await pwtokensTable.deleteByToken(testTokens[1].token)
+            expect(result).toEqual(true)
+            const expectedData = [...testTokens]
+            expectedData.splice(1, 1)
+            const matches = await tableMatchesData(expectedData)
+            expect(matches).toEqual(true)
+        })
+
+        it('returns false and makes no changes if token does not exist', async () => {
+            const result = await pwtokensTable.deleteByToken(absentTokens[0].token)
+            expect(result).toEqual(false)
+            const matches = await tableMatchesData(testTokens)
+            expect(matches).toEqual(true)
+        })
+
+    })
+
 })

@@ -2,8 +2,9 @@ import { PoolClient, QueryResult } from 'pg'
 import db from './db'
 
 export interface TokenResult {
+    pwtoken_id: number;
     token: string;
-    email: string;
+    user_id: number;
     expires: Date;
 }
 

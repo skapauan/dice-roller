@@ -49,7 +49,7 @@ const db = {
                 pwtoken_id INT GENERATED ALWAYS AS IDENTITY,
                 token TEXT NOT NULL UNIQUE,
                 user_id INT NOT NULL,
-                expires TIMESTAMP
+                expires TIMESTAMP NOT NULL
             );`
         ))
     },

@@ -161,6 +161,7 @@ describe('Password tokens table', () => {
             for (let i = 0; i < testTokens.length; i++) {
                 const pwToken = await pwtokensTable.findByToken(testTokens[i].token)
                 expect(pwToken).toMatchObject(testTokens[i])
+                expect(pwToken.expired).toEqual(Date.now() > testTokens[i].expires.getTime())
             }
         })
 
@@ -184,6 +185,7 @@ describe('Password tokens table', () => {
                 const data = await pwtokensTable.findByToken(token)
                 expect(data).toMatchObject({ token, user_id })
                 expect(data.expires.getTime()).toBeGreaterThan(Date.now())
+                expect(data.expired).toEqual(false)
             }
         })
 

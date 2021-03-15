@@ -7,6 +7,7 @@ export interface TokenResult {
     token: string;
     user_id: number;
     expires: Date;
+    expired: boolean;
 }
 
 const pwtokensTable = {
@@ -24,7 +25,7 @@ const pwtokensTable = {
     
     findByToken: (token: string, client?: PoolClient): Promise<TokenResult> => {
         return db.query({
-            text: 'SELECT * FROM pwtokens WHERE token = $1;',
+            text: 'SELECT *, expires < now() AS expired FROM pwtokens WHERE token = $1;',
             values: [token]
         }, client)
         .then((result) => {

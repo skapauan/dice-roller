@@ -18,13 +18,16 @@ interface TokenToInsert {
 
 const testTokens: Array<TokenToInsert> = [
     { token: '123', user_id: 1, expires: new Date('21 May 1990 09:00:00 GMT') },
-    { token: '321', user_id: 2, expires: new Date('18 Jan 2058 17:00:00 GMT') },
-    { token: '231', user_id: 3, expires: new Date() }
+    { token: '132', user_id: 2, expires: new Date('18 Jan 2058 17:00:00 GMT') },
+    { token: '213', user_id: 3, expires: new Date('11 Mar 2020 11:00:00 GMT') },
+    { token: '231', user_id: 4, expires: new Date('13 Feb 1989 18:00:00 GMT') },
+    { token: '312', user_id: 5, expires: new Date('06 Jun 2067 23:00:00 GMT') },
+    { token: '321', user_id: 6, expires: new Date('01 Apr 2071 02:00:00 GMT') }
 ]
 
 const absentTokens: Array<TokenToInsert> = [
-    { token: '999', user_id: 4, expires: new Date(0) },
-    { token: '888', user_id: 5, expires: new Date('23 Sep 1972 06:00:00 GMT') }
+    { token: '777', user_id: 7, expires: new Date('23 Sep 1972 06:00:00 GMT') },
+    { token: '888', user_id: 8, expires: new Date('30 Oct 2046 13:00:00 GMT') }
 ]
 
 const clearTable = async (client?: PoolClient): Promise<void> => {
@@ -43,7 +46,7 @@ const populateTestTokens = async (): Promise<void> => {
     try {
         await clearTable(client)
         for (let i = 0; i < testTokens.length; i++) {
-            insertToken(testTokens[i], client)
+            await insertToken(testTokens[i], client)
         }
     } catch (error) {
         throw error
@@ -70,8 +73,10 @@ const tableMatchesData = async (data: Array<TokenToInsert>): Promise<boolean> =>
         if (!originalToken) {
             return false
         }
-        if (tableToken.user_id !== originalToken.user_id ||
-            tableToken.expires.getTime() !== originalToken.expires.getTime()) {
+        if (tableToken.expires.getTime() !== originalToken.expires.getTime()) {
+            return false
+        }
+        if (tableToken.user_id !== originalToken.user_id) {
             return false
         }
         remainingTokens.delete(tableToken.token)
@@ -126,7 +131,7 @@ describe('Test helpers for password tokens table', () => {
             expect(await tableMatchesData([ aBitDifferent ])).toEqual(false)
             // Two entries
             await insertToken(testTokens[1])
-            expect(await tableMatchesData([ testTokens[1], testTokens[2] ])).toEqual(false)
+            expect(await tableMatchesData([ testTokens[0], testTokens[2] ])).toEqual(false)
             const aLittleDifferent = { ...testTokens[1], user_id: testTokens[0].user_id }
             expect(await tableMatchesData([ testTokens[0], aLittleDifferent ])).toEqual(false)
         })
@@ -172,14 +177,14 @@ describe('Password tokens table', () => {
         
         it('creates a token and returns the token value', async () => {
             await clearTable()
-            testTokens.forEach(async (tokenData, index) => {
-                const user_id = tokenData.user_id
+            for (let i = 0; i < testTokens.length; i++) {
+                const user_id = testTokens[i].user_id
                 const token = await pwtokensTable.create(user_id)
                 expect(token.length).toBeGreaterThan(0)
                 const data = await pwtokensTable.findByToken(token)
                 expect(data).toMatchObject({ token, user_id })
                 expect(data.expires.getTime()).toBeGreaterThan(Date.now())
-            })
+            }
         })
 
     })

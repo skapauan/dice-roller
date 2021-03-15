@@ -23,6 +23,7 @@
     "dotenv": "^8.2.0",
     "email-validator": "^2.0.4",
     "express": "^4.17.1",
+    "nanoid": "^3.1.22",
     "passport": "^0.4.1",
     "pg": "^8.5.1",
     "random-org": "^2.1.0",

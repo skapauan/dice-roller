@@ -146,21 +146,6 @@ describe('Test helpers for password tokens table', () => {
 
 describe('Password tokens table', () => {
 
-    describe('create', () => {
-        
-        it('creates a token from valid info and returns the token value', async () => {
-            await clearTable()
-            const user_id = testTokens[0].user_id
-            const token = await pwtokensTable.create(user_id)
-            expect(token.length).toBeGreaterThan(0)
-            const data = await pwtokensTable.findByToken(token)
-            expect(data).toMatchObject({ token, user_id })
-            expect(typeof data.expires.getMonth).toEqual('function')
-            expect(data.expires.getTime()).toBeGreaterThan(Date.now())
-        })
-
-    })
-
     describe('findByToken', () => {
 
         beforeAll(async () => {
@@ -179,6 +164,22 @@ describe('Password tokens table', () => {
                 const pwToken = await pwtokensTable.findByToken(absentTokens[i].token)
                 expect(pwToken).toBeNull()
             }
+        })
+
+    })
+
+    describe('create', () => {
+        
+        it('creates a token and returns the token value', async () => {
+            await clearTable()
+            testTokens.forEach(async (tokenData, index) => {
+                const user_id = tokenData.user_id
+                const token = await pwtokensTable.create(user_id)
+                expect(token.length).toBeGreaterThan(0)
+                const data = await pwtokensTable.findByToken(token)
+                expect(data).toMatchObject({ token, user_id })
+                expect(data.expires.getTime()).toBeGreaterThan(Date.now())
+            })
         })
 
     })

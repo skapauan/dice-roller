@@ -1,4 +1,5 @@
 import { PoolClient, QueryResult } from 'pg'
+import { nanoid } from 'nanoid'
 import db from './db'
 
 export interface TokenResult {
@@ -10,11 +11,11 @@ export interface TokenResult {
 
 const pwtokensTable = {
 
-    create: (user_id: number): string => {
-        const token = 'a'
+    create: async (user_id: number): Promise<string> => {
+        const token = nanoid()
         const expires = new Date()
         expires.setHours( expires.getHours() + 3 );
-        db.query({
+        await db.query({
             text: 'INSERT INTO pwtokens (token, user_id, expires) VALUES ($1, $2, $3);',
             values: [token, user_id, expires]
         })

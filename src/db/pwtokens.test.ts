@@ -53,14 +53,17 @@ const populateTestTokens = async (): Promise<void> => {
 }
 
 const tableMatchesData = async (data: Array<TokenToInsert>): Promise<boolean> => {
-    const table = await db.query(`SELECT * FROM pwtokens;`)
-    if (table.rowCount !== data.length) {
-        return false
-    }
     const remainingTokens: Map<string, TokenToInsert> = new Map()
     data.forEach((token) => {
         remainingTokens.set(token.token, token)
     })
+    if (remainingTokens.size !== data.length) {
+        return Promise.reject(new Error('Duplicate tokens in data'))
+    }
+    const table = await db.query(`SELECT * FROM pwtokens;`)
+    if (table.rowCount !== data.length) {
+        return false
+    }
     for (let i = 0; i < data.length; i++) {
         const tableToken = table.rows[i]
         const originalToken = remainingTokens.get(tableToken.token)
@@ -82,6 +85,11 @@ describe('Test helpers for password tokens table', () => {
 
         beforeEach(async () => {
             await clearTable()
+        })
+
+        it('rejects if data contains duplicate tokens', () => {
+            const useDataWithDuplicateTokens = () => tableMatchesData([ testTokens[1], testTokens[2], testTokens[1] ])
+            expect(useDataWithDuplicateTokens()).rejects.toThrow()
         })
 
         it('returns true if table and data have the same list of entries', async () => {

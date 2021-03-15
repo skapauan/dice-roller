@@ -213,4 +213,25 @@ describe('Password tokens table', () => {
 
     })
 
+    describe('deleteExpired', () => {
+        
+        it('deletes expired tokens and returns how many it deleted', async () => {
+            const now = Date.now()
+            const currentTokens: Array<TokenToInsert> = []
+            const expiredCount = testTokens.reduce((count, token) => {
+                if (token.expires.getTime() < now) {
+                    // token is expired
+                    return count + 1
+                }
+                currentTokens.push(token)
+                return count
+            }, 0)
+            await populateTestTokens()
+            const result = await pwtokensTable.deleteExpired()
+            expect(result).toEqual(expiredCount)
+            expect(await tableMatchesData(currentTokens)).toEqual(true)
+        })
+
+    })
+
 })

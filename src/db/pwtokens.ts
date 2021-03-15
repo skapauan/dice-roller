@@ -47,6 +47,13 @@ const pwtokensTable = {
             }
             return false
         })
+    },
+
+    deleteExpired: async (client?: PoolClient): Promise<number> => {
+        return db.query('DELETE FROM pwtokens WHERE expires < now();', client)
+        .then((result) => {
+            return result.rowCount
+        })
     }
 
 }

@@ -14,11 +14,9 @@ const pwtokensTable = {
 
     create: async (user_id: number): Promise<string> => {
         const token = nanoid()
-        const expires = new Date()
-        expires.setHours( expires.getHours() + 3 );
         await db.query({
-            text: 'INSERT INTO pwtokens (token, user_id, expires) VALUES ($1, $2, $3);',
-            values: [token, user_id, expires]
+            text: `INSERT INTO pwtokens (token, user_id, expires) VALUES ($1, $2, now() + interval '3 hours');`,
+            values: [token, user_id]
         })
         return token
     },

@@ -76,4 +76,79 @@ describe('Login service', () => {
 
     })
 
+    describe('after a user is created', () => {
+
+        const eve = {
+            email: 'eve@example.com',
+            nickname: 'Eve',
+            password: 'helloworld',
+            hash: 'hash',
+            admin: true
+        }
+
+        beforeAll(async () => {
+            await db.query({
+                text: 'DELETE FROM users WHERE email = $1;',
+                values: [eve.email]
+            })
+            await db.query({
+                text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
+                values: [eve.email, eve.nickname, eve.password, eve.hash, eve.admin]
+            })
+        })
+
+        it('should accept login matching the user\'s info', () => {
+            return request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: eve.email, password: eve.password })
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expect(res.body).toHaveProperty('success', true)
+                    expect(res.body).not.toHaveProperty('forceReset')
+                    expect(res.body).not.toHaveProperty('resetToken')
+                })
+        })
+
+        it('should reject login using INITIAL_ADMIN and INITIAL_PASSWORD (different from user)', () => {
+            expect(process.env.INITIAL_ADMIN).not.toEqual(eve.email)
+            expect(process.env.INITIAL_PASSWORD).not.toEqual(eve.password)
+            return request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: process.env.INITIAL_ADMIN, password: process.env.INITIAL_PASSWORD })
+                .expect(401)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+        })
+
+        it('should reject login using user\'s email but incorrect password', () => {
+            return request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: eve.email, password: process.env.INITIAL_PASSWORD })
+                .expect(401)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+        })
+
+        it('should reject login using user\'s password but incorrect email', () => {
+            return request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: process.env.INITIAL_ADMIN, password: eve.password })
+                .expect(401)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+        })
+
+    })
+
 })

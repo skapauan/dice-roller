@@ -45,6 +45,19 @@ const usersTable = {
         })
     },
     
+    findById: (user_id: number, client?: PoolClient): Promise<UserResult | null> => {
+        return db.query({
+            text: 'SELECT * FROM users WHERE user_id = $1;',
+            values: [user_id]
+        }, client)
+        .then((result) => {
+            if (result.rowCount > 0) {
+                return { ...result.rows[0] }
+            }
+            return null
+        })
+    },
+    
     findByEmail: (email: string, client?: PoolClient): Promise<UserResult | null> => {
         return db.query({
             text: 'SELECT * FROM users WHERE email = $1;',

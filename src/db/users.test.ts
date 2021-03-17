@@ -39,7 +39,7 @@ describe('Users table', () => {
 
     describe('findByEmail', () => {
 
-        it('returns info for a user that has the email', async () => {
+        it('returns info for the user that has the email', async () => {
             const client = await db.getClient()
             try {
                 const email = 'chipmunk@example.com'
@@ -56,9 +56,8 @@ describe('Users table', () => {
                     values: [email, nickname, password, hash, admin]
                 }, client)
                 const result = await usersTable.findByEmail(email, client)
-                if (!result) {
-                    throw new Error('Result not found')
-                }
+                expect(result).not.toBeNull()
+                if (!result) return // make ts compiler happy
                 expect(result).toMatchObject({
                     email,
                     nickname,
@@ -106,6 +105,61 @@ describe('Users table', () => {
             })
             const result = await usersTable.deleteByEmail(email)
             expect(result).toEqual(false)
+        })
+
+    })
+
+    describe('findById', () => {
+
+        it('returns info for the user that has the ID', async () => {
+            const client = await db.getClient()
+            try {
+                // Add user
+                const email = 'mouse@example.com'
+                const nickname = undefined
+                const password = 'password' + parseInt((Math.random() * 1000000000).toString(), 10)
+                const hash = 'hash ' + new Date().toString()
+                const admin = false
+                await db.query({
+                    text: 'DELETE FROM users WHERE email = $1;',
+                    values: [email]
+                }, client)
+                await db.query({
+                    text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
+                    values: [email, nickname, password, hash, admin]
+                }, client)
+                // Get user_id of the added user
+                const resultByEmail = await usersTable.findByEmail(email, client)
+                expect(resultByEmail).not.toBeNull()
+                if (!resultByEmail) return // make ts compiler happy
+                expect(typeof resultByEmail.user_id).toEqual('number')
+                // Test findById
+                const resultById = await usersTable.findById(resultByEmail.user_id, client)
+                expect(resultById).not.toBeNull()
+                if (!resultById) return // make ts compiler happy
+                expect(resultById).toMatchObject({
+                    email,
+                    nickname: null,
+                    password,
+                    hash,
+                    admin
+                })
+                expect(typeof resultById.user_id).toEqual('number')
+            } catch (error) {
+                throw error
+            } finally {
+                client.release()
+            }
+        })
+
+        it ('returns null if no user has the ID', async () => {
+            const id = 9999999
+            await db.query({
+                text: 'DELETE FROM users WHERE user_id = $1',
+                values: [id]
+            })
+            const result = await usersTable.findById(id)
+            expect(result).toBeNull()
         })
 
     })

@@ -53,6 +53,13 @@ const pwtokensTable = {
         .then((result) => {
             return result.rowCount
         })
+    },
+
+    deleteAll: async (client?: PoolClient): Promise<number> => {
+        return db.query('DELETE FROM pwtokens;', client)
+        .then((result) => {
+            return result.rowCount
+        })
     }
 
 }

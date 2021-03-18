@@ -236,4 +236,15 @@ describe('Password tokens table', () => {
 
     })
 
+    describe('deleteAll', () => {
+        
+        it('deletes all tokens and returns how many it deleted', async () => {
+            await populateTestTokens()
+            const result = await pwtokensTable.deleteAll()
+            expect(result).toEqual(testTokens.length)
+            expect(await tableMatchesData([])).toEqual(true)
+        })
+
+    })
+
 })

@@ -80,6 +80,64 @@ describe('Login service', () => {
                 })
         })
 
+        it('should reject login if bad syntax', () => {
+            return request(app)
+                .post('/')
+                .type('application/json')
+                .send({})
+                .expect(400)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+            .then(() => request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: null, password: 12345 })
+                .expect(400)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+            )
+        })
+    
+        it('should reject login if INITIAL_ADMIN is empty string',
+        () => {
+            const admin = process.env.INITIAL_ADMIN
+            process.env.INITIAL_ADMIN = ''
+            return request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: '', password: process.env.INITIAL_PASSWORD })
+                .expect(401)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+                .finally(() => {
+                    process.env.INITIAL_ADMIN = admin
+                })
+        })
+    
+        it('should reject login if INITIAL_PASSWORD is empty string',
+        () => {
+            const password = process.env.INITIAL_PASSWORD
+            process.env.INITIAL_PASSWORD = ''
+            return request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: process.env.INITIAL_ADMIN, password: '' })
+                .expect(401)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+                .finally(() => {
+                    process.env.INITIAL_PASSWORD = password
+                })
+        })
+
     })
 
     describe('after a user is created', () => {

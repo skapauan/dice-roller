@@ -1,4 +1,5 @@
-import usersTable from './users'
+import argon2 from 'argon2'
+import usersTable, { UserResult } from './users'
 import db from './db'
 
 beforeAll(async () => {
@@ -155,6 +156,43 @@ describe('Users table', () => {
             })
             const result = await usersTable.findById(id)
             expect(result).toBeNull()
+        })
+
+    })
+
+    describe('checkPassword', () => {
+
+        const user: UserResult = {
+            user_id: 1,
+            email: 'rat@example.com',
+            nickname: 'Nigel Ratburn',
+            password: '',
+            admin: false
+        }
+
+        const plaintext = 'IHopeIRememberMyPassword'
+
+        beforeAll(async () => {
+            user.password = await argon2.hash(plaintext)
+        })
+
+        it('returns true if password matches', async () => {
+            expect(await usersTable.checkPassword(plaintext, user)).toEqual(true)
+        })
+
+        it('returns false if password does not match', async () => {
+            expect(await usersTable.checkPassword('OhNoIThinkIForgotIt', user)).toEqual(false)
+        })
+
+        it('returns false if user data does not have password', async () => {
+            const userNoPw = {...user, password: null}
+            expect(await usersTable.checkPassword('null', userNoPw)).toEqual(false)
+        })
+
+        it('returns false if user data has invalid password', async () => {
+            const userBadPw = {...user, password: '12345'}
+            // argon2.verify will throw "TypeError: pchstr must contain a $ as first char"
+            expect(await usersTable.checkPassword(plaintext, userBadPw)).toEqual(false)
         })
 
     })

@@ -1,3 +1,4 @@
+import argon2 from 'argon2'
 import emailValidator from 'email-validator'
 import { PoolClient, QueryResult } from 'pg'
 import db from './db'
@@ -99,6 +100,17 @@ const usersTable = {
             values: [email, user.nickname?.trim(), user.password, user.admin]
         }, client)
         return insertResult.rows[0].user_id
+    },
+
+    checkPassword: async (password: string, userData: UserResult): Promise<boolean> => {
+        if (typeof userData.password !== 'string') {
+            return false
+        }
+        try {
+            return await argon2.verify(userData.password, password)
+        } catch (error) {
+            return false
+        }
     }
 
 }

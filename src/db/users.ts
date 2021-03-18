@@ -96,7 +96,7 @@ const usersTable = {
         }
         const insertResult = await db.query({
             text: `INSERT INTO users (email, nickname, password, admin) VALUES ($1, $2, $3, $4) RETURNING user_id;`,
-            values: [email, user.nickname, user.password, user.admin]
+            values: [email, user.nickname?.trim(), user.password, user.admin]
         }, client)
         return insertResult.rows[0].user_id
     }

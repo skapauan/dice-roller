@@ -185,7 +185,14 @@ describe('Users table', () => {
         it('adds a user and returns its user_id if the email is not yet registered',
         async () => {
             await db.query(`DELETE FROM users;`)
-            const id = await usersTable.create(user2)
+            const id = await usersTable.create(user1)
+            const info = await usersTable.findById(id)
+            expect(info).toMatchObject(user1)
+        })
+
+        it('trims nickname before saving', async () => {
+            await db.query(`DELETE FROM users;`)
+            const id = await usersTable.create({...user2, nickname: ` \r\n \t ${user2.nickname}  \xa0 `})
             const info = await usersTable.findById(id)
             expect(info).toMatchObject(user2)
         })

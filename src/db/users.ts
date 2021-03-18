@@ -6,7 +6,6 @@ export interface User {
     email: string;
     nickname?: string;
     password?: string;
-    hash?: string;
     admin?: boolean;
 }
 
@@ -15,7 +14,6 @@ export interface UserResult {
     email: string;
     nickname: string | null;
     password: string | null;
-    hash: string | null;
     admin: boolean;
 }
 
@@ -97,8 +95,8 @@ const usersTable = {
             return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE))
         }
         const insertResult = await db.query({
-            text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5) RETURNING user_id;`,
-            values: [user.email, user.nickname, user.password, user.hash, user.admin]
+            text: `INSERT INTO users (email, nickname, password, admin) VALUES ($1, $2, $3, $4) RETURNING user_id;`,
+            values: [email, user.nickname, user.password, user.admin]
         }, client)
         return insertResult.rows[0].user_id
     }

@@ -45,15 +45,14 @@ describe('Users table', () => {
                 const email = 'chipmunk@example.com'
                 const nickname ='Chipmunk'
                 const password = 'password' + parseInt((Math.random() * 1000000000).toString(), 10)
-                const hash = 'hash ' + new Date().toString()
                 const admin = true
                 await db.query({
                     text: 'DELETE FROM users WHERE email = $1;',
                     values: [email]
                 }, client)
                 await db.query({
-                    text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
-                    values: [email, nickname, password, hash, admin]
+                    text: `INSERT INTO users (email, nickname, password, admin) VALUES ($1, $2, $3, $4);`,
+                    values: [email, nickname, password, admin]
                 }, client)
                 const result = await usersTable.findByEmail(email, client)
                 expect(result).not.toBeNull()
@@ -62,7 +61,6 @@ describe('Users table', () => {
                     email,
                     nickname,
                     password,
-                    hash,
                     admin
                 })
                 expect(typeof result.user_id).toEqual('number')
@@ -117,15 +115,14 @@ describe('Users table', () => {
                 const email = 'mouse@example.com'
                 const nickname = undefined
                 const password = 'password' + parseInt((Math.random() * 1000000000).toString(), 10)
-                const hash = 'hash ' + new Date().toString()
                 const admin = false
                 await db.query({
                     text: 'DELETE FROM users WHERE email = $1;',
                     values: [email]
                 }, client)
                 await db.query({
-                    text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
-                    values: [email, nickname, password, hash, admin]
+                    text: `INSERT INTO users (email, nickname, password, admin) VALUES ($1, $2, $3, $4);`,
+                    values: [email, nickname, password, admin]
                 }, client)
                 // Get user_id of the added user
                 const resultByEmail = await usersTable.findByEmail(email, client)
@@ -140,7 +137,6 @@ describe('Users table', () => {
                     email,
                     nickname: null,
                     password,
-                    hash,
                     admin
                 })
                 expect(typeof resultById.user_id).toEqual('number')
@@ -171,7 +167,6 @@ describe('Users table', () => {
             email,
             nickname: 'Shrew',
             password: 'shrews-are-the-best',
-            hash: '555',
             admin: false
         }
 
@@ -179,7 +174,6 @@ describe('Users table', () => {
             email,
             nickname: 'S. H. Rew',
             password: 'refined-rodent',
-            hash: '777',
             admin: true
         }
 

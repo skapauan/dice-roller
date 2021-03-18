@@ -146,7 +146,6 @@ describe('Login service', () => {
             email: 'eve@example.com',
             nickname: 'Eve',
             password: 'helloworld',
-            hash: 'hash',
             admin: true
         }
 
@@ -156,8 +155,8 @@ describe('Login service', () => {
                 values: [eve.email]
             })
             await db.query({
-                text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
-                values: [eve.email, eve.nickname, eve.password, eve.hash, eve.admin]
+                text: `INSERT INTO users (email, nickname, password, admin) VALUES ($1, $2, $3, $4);`,
+                values: [eve.email, eve.nickname, eve.password, eve.admin]
             })
         })
 
@@ -247,30 +246,13 @@ describe('Login service', () => {
 
         it('should reject login if user does not have a password in the database', () => {
             return db.query({
-                text: `UPDATE users SET password = $1, hash = $2 WHERE email = $3;`,
-                values: [undefined, eve.hash, eve.email]
+                text: `UPDATE users SET password = $1 WHERE email = $2;`,
+                values: [undefined, eve.email]
             })
             .then(() => request(app)
                 .post('/')
                 .type('application/json')
                 .send({ user: eve.email, password: 'null' })
-                .expect(401)
-                .expect('Content-Type', /json/)
-                .then((res) => {
-                    expectFailedLoginBody(res)
-                })
-            )
-        })
-
-        it('should reject login if user does not have a hash in the database', () => {
-            return db.query({
-                text: `UPDATE users SET password = $1, hash = $2 WHERE email = $3;`,
-                values: [eve.password, undefined, eve.email]
-            })
-            .then(() => request(app)
-                .post('/')
-                .type('application/json')
-                .send({ user: eve.email, password: eve.password })
                 .expect(401)
                 .expect('Content-Type', /json/)
                 .then((res) => {

@@ -39,7 +39,6 @@ const db = {
                 user_id INT GENERATED ALWAYS AS IDENTITY,
                 email VARCHAR(320) NOT NULL UNIQUE,
                 password TEXT,
-                hash TEXT,
                 nickname TEXT,
                 admin BOOL DEFAULT 'f'
             );`

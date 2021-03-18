@@ -149,6 +149,72 @@ describe('Login service', () => {
                 })
         })
 
+        it('should reject login if bad syntax', () => {
+            return request(app)
+                .post('/')
+                .type('application/json')
+                .send({ apples: 5, oranges: 7 })
+                .expect(400)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+            .then(() => request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: undefined, password: 12345 })
+                .expect(400)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+            )
+            .then(() => request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: eve.email, password: null })
+                .expect(400)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+            )
+        })
+
+        it('should reject login if user does not have a password in the database', () => {
+            return db.query({
+                text: `UPDATE users SET password = $1, hash = $2 WHERE email = $3;`,
+                values: [undefined, eve.hash, eve.email]
+            })
+            .then(() => request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: eve.email, password: 'null' })
+                .expect(401)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+            )
+        })
+
+        it('should reject login if user does not have a hash in the database', () => {
+            return db.query({
+                text: `UPDATE users SET password = $1, hash = $2 WHERE email = $3;`,
+                values: [eve.password, undefined, eve.email]
+            })
+            .then(() => request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: eve.email, password: eve.password })
+                .expect(401)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailedLoginBody(res)
+                })
+            )
+        })
+
     })
 
 })

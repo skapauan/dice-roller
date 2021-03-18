@@ -1,5 +1,5 @@
 import argon2 from 'argon2'
-import usersTable, { UserResult } from './users'
+import usersTable, { UserCreate, UserResult } from './users'
 import db from './db'
 
 beforeAll(async () => {
@@ -201,19 +201,27 @@ describe('Users table', () => {
 
         const email = 'shrew@example.com'
 
-        const user1 = {
+        const user1: UserCreate = {
             email,
             nickname: 'Shrew',
             password: 'shrews-are-the-best',
             admin: false
         }
 
-        const user2 = {
+        const user2: UserCreate = {
             email,
             nickname: 'S. H. Rew',
             password: 'refined-rodent',
             admin: true
         }
+
+        const removePw = (user: UserCreate): object => {
+            const obj: any = {...user}
+            delete obj.password
+            return obj
+        }
+        const user1result = removePw(user1)
+        const user2result = removePw(user2)
 
         it('has error messages defined',
         () => {
@@ -223,16 +231,38 @@ describe('Users table', () => {
         it('adds a user and returns its user_id if the email is not yet registered',
         async () => {
             await db.query(`DELETE FROM users;`)
-            const id = await usersTable.create(user1)
+            const id = await usersTable.create(user2)
             const info = await usersTable.findById(id)
-            expect(info).toMatchObject(user1)
+            expect(info).toMatchObject(user2result)
         })
 
         it('trims nickname before saving', async () => {
             await db.query(`DELETE FROM users;`)
             const id = await usersTable.create({...user2, nickname: ` \r\n \t ${user2.nickname}  \xa0 `})
             const info = await usersTable.findById(id)
-            expect(info).toMatchObject(user2)
+            expect(info).toMatchObject(user2result)
+        })
+
+        it('hashes password before saving', async () => {
+            await db.query(`DELETE FROM users;`)
+            const id = await usersTable.create(user2)
+            const info = await usersTable.findById(id)
+            expect(info).not.toBeNull()
+            if (!info) return // make ts compiler happy
+            expect(typeof info.password).toEqual('string')
+            expect(typeof user2.password).toEqual('string')
+            expect(await argon2.verify(info.password as string, user2.password as string)).toEqual(true)
+        })
+
+        it('saves an undefined password as null in the database', async () => {
+            await db.query(`DELETE FROM users;`)
+            const user = {...user2}
+            user.password = undefined
+            const userResult = {...user2} as any
+            userResult.password = null
+            const id = await usersTable.create(user)
+            const info = await usersTable.findById(id)
+            expect(info).toMatchObject(userResult as UserResult)
         })
 
         it('rejects, throws, and does not affect existing user if email is already registered',
@@ -247,7 +277,7 @@ describe('Users table', () => {
                 await expect(createUserWithExistingUserEmail())
                     .rejects.toThrow(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE)
                 const info = await usersTable.findByEmail(user2.email, client)
-                expect(info).toMatchObject(user1)
+                expect(info).toMatchObject(user1result)
             } catch (error) {
                 throw error
             } finally {

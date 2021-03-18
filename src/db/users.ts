@@ -3,7 +3,7 @@ import emailValidator from 'email-validator'
 import { PoolClient, QueryResult } from 'pg'
 import db from './db'
 
-export interface User {
+export interface UserCreate {
     email: string;
     nickname?: string;
     password?: string;
@@ -83,10 +83,11 @@ const usersTable = {
         })
     },
 
-    create: async (user: User, client?: PoolClient): Promise<number> => {
+    create: async (user: UserCreate, client?: PoolClient): Promise<number> => {
         if (!emailValidator.validate(user.email)) {
             return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_INVALID))
         }
+        let password
         const email = user.email.trim()
         const selectResult = await db.query({
             text: `SELECT CASE WHEN EXISTS (SELECT 1 FROM users WHERE email = $1) THEN 1 ELSE 0 END AS emailfound`,
@@ -95,9 +96,12 @@ const usersTable = {
         if (selectResult.rows[0].emailfound === 1) {
             return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE))
         }
+        if (typeof user.password === 'string') {
+            password = await argon2.hash(user.password)
+        }
         const insertResult = await db.query({
             text: `INSERT INTO users (email, nickname, password, admin) VALUES ($1, $2, $3, $4) RETURNING user_id;`,
-            values: [email, user.nickname?.trim(), user.password, user.admin]
+            values: [email, user.nickname?.trim(), password, user.admin]
         }, client)
         return insertResult.rows[0].user_id
     },

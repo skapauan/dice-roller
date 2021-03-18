@@ -84,23 +84,23 @@ const usersTable = {
         })
     },
 
-    create: async (user: User, client?: PoolClient): Promise<boolean> => {
+    create: async (user: User, client?: PoolClient): Promise<number> => {
         if (!emailValidator.validate(user.email)) {
             return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_INVALID))
         }
         const email = user.email.trim()
-        const result = await db.query({
+        const selectResult = await db.query({
             text: `SELECT CASE WHEN EXISTS (SELECT 1 FROM users WHERE email = $1) THEN 1 ELSE 0 END AS emailfound`,
             values: [email]
         }, client)
-        if (result.rows[0].emailfound === 1) {
+        if (selectResult.rows[0].emailfound === 1) {
             return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE))
         }
-        await db.query({
-            text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5);`,
+        const insertResult = await db.query({
+            text: `INSERT INTO users (email, nickname, password, hash, admin) VALUES ($1, $2, $3, $4, $5) RETURNING user_id;`,
             values: [user.email, user.nickname, user.password, user.hash, user.admin]
         }, client)
-        return true
+        return insertResult.rows[0].user_id
     }
 
 }

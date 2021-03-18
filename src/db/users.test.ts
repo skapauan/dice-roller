@@ -89,8 +89,7 @@ describe('Users table', () => {
 
         it('returns true and removes the user with the email if it exists', async () => {
             const email = 'capybara@example.com'
-            const createResult = await usersTable.create({email})
-            expect(createResult).toEqual(true)
+            await usersTable.create({email})
             const deleteResult = await usersTable.deleteByEmail(email)
             expect(deleteResult).toEqual(true)
             const user = await usersTable.findByEmail(email)
@@ -189,13 +188,12 @@ describe('Users table', () => {
             expect(usersTable.errors.CREATE_EMAIL_INVALID).toBeTruthy()
         })
 
-        it('adds user and returns true if the email is not yet registered',
+        it('adds a user and returns its user_id if the email is not yet registered',
         async () => {
             await db.query(`DELETE FROM users;`)
-            const result = await usersTable.create(user2)
-            const info = await usersTable.findByEmail(user2.email)
+            const id = await usersTable.create(user2)
+            const info = await usersTable.findById(id)
             expect(info).toMatchObject(user2)
-            expect(result).toEqual(true)
         })
 
         it('rejects, throws, and does not affect existing user if email is already registered',

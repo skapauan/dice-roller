@@ -2,6 +2,7 @@ import request from 'supertest'
 import express from 'express'
 import router from './login'
 import db from '../db/db'
+import pwtokensTable from '../db/pwtokens'
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
@@ -31,7 +32,7 @@ describe('Login service', () => {
             await db.query('DELETE FROM users;')
         })
 
-        it('should accept login using INITIAL_ADMIN and INITIAL_PASSWORD',
+        it('should accept login using INITIAL_ADMIN and INITIAL_PASSWORD and force a password reset',
         () => {
             return request(app)
                 .post('/')
@@ -45,6 +46,11 @@ describe('Login service', () => {
                     expect(res.body).toHaveProperty('resetToken')
                     expect(typeof res.body.resetToken).toEqual('string')
                     expect(res.body.resetToken.length).toBeGreaterThan(0)
+                    // Check that token exists in table
+                    return pwtokensTable.findByToken(res.body.resetToken)
+                })
+                .then((tokenData) => {
+                    expect(tokenData).not.toBeNull()
                 })
         })
     

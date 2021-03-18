@@ -1,6 +1,7 @@
 import express, { Request } from 'express'
 import bodyParser from 'body-parser'
 import usersTable from '../db/users'
+import pwtokensTable from '../db/pwtokens'
 
 const router = express.Router()
 router.use(bodyParser.json())
@@ -36,8 +37,10 @@ router.route('/')
         res.json({ success: false } as LoginResponseBody)
     } else if (await usersTable.isEmpty()) {
         if (body.user === process.env.INITIAL_ADMIN && body.password === process.env.INITIAL_PASSWORD) {
+            await pwtokensTable.deleteAll()
+            const resetToken = await pwtokensTable.create(-1)
             res.statusCode = 200
-            res.json({ success: true, forceReset: true, resetToken: 'a token' } as LoginResponseBody)
+            res.json({ success: true, forceReset: true, resetToken } as LoginResponseBody)
         } else {
             res.statusCode = 401
             res.json({ success: false } as LoginResponseBody)

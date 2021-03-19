@@ -54,8 +54,11 @@ router.route('/')
         }
     } else {
         // One or more users in table
-        const user = await usersTable.findByEmail(body.user)
-        if (user && user.password && body.password === user.password) {
+        const userData = await usersTable.findByEmail(body.user)
+        if (!userData || typeof userData.password !== 'string') {
+            res.statusCode = 401
+            res.json({ success: false } as LoginResponseBody)
+        } else if (await usersTable.checkPassword(body.password, userData)) {
             res.statusCode = 200
             res.json({ success: true } as LoginResponseBody)
         } else {

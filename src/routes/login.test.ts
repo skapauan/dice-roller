@@ -3,6 +3,7 @@ import express from 'express'
 import router from './login'
 import db from '../db/db'
 import pwtokensTable from '../db/pwtokens'
+import usersTable from '../db/users'
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
@@ -150,14 +151,8 @@ describe('Login service', () => {
         }
 
         beforeAll(async () => {
-            await db.query({
-                text: 'DELETE FROM users WHERE email = $1;',
-                values: [eve.email]
-            })
-            await db.query({
-                text: `INSERT INTO users (email, nickname, password, admin) VALUES ($1, $2, $3, $4);`,
-                values: [eve.email, eve.nickname, eve.password, eve.admin]
-            })
+            await usersTable.deleteByEmail(eve.email)
+            await usersTable.create(eve)
         })
 
         it('should accept login matching the user\'s info', () => {

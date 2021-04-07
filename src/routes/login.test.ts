@@ -1,15 +1,19 @@
 import request from 'supertest'
 import express from 'express'
-import router from './login'
-import db from '../db/db'
-import pwtokensTable from '../db/pwtokens'
-import usersTable from '../db/users'
+import getRouter from './login'
+import DB from '../db/db'
+import PwTokensTable from '../db/pwtokens'
+import UsersTable from '../db/users'
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
+const db = new DB()
+const pwtokensTable = new PwTokensTable(db)
+const usersTable = new UsersTable(db)
+
 const app = express()
 app.use(express.json())
-app.use('/', router)
+app.use('/', getRouter(db))
 
 beforeAll(async () => {
     await db.init()

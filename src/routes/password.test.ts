@@ -1,14 +1,17 @@
 import request from 'supertest'
 import express from 'express'
-import router from './password'
-import db from '../db/db'
-import usersTable from '../db/users'
+import getRouter from './password'
+import DB from '../db/db'
+import UsersTable from '../db/users'
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
+const db = new DB()
+const usersTable = new UsersTable(db)
+
 const app = express()
 app.use(express.json())
-app.use('/', router)
+app.use('/', getRouter(db))
 
 beforeAll(async () => {
     await db.init()

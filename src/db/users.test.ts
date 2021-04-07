@@ -1,6 +1,9 @@
 import argon2 from 'argon2'
-import usersTable, { UserCreate, UserResult } from './users'
-import db from './db'
+import UsersTable, { UserCreate, UserResult } from './users'
+import DB from './db'
+
+const db = new DB()
+const usersTable = new UsersTable(db)
 
 beforeAll(async () => {
     await db.init()

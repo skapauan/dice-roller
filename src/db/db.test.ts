@@ -1,16 +1,23 @@
-import db from './db'
+import DB from './db'
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
-beforeAll(async () => {
-    await db.init()
-})
+const db = new DB()
 
-afterAll(() => {
-    db.end()
+afterAll(async () => {
+    await db.end()
 })
 
 describe('DB manager', () => {
+
+    it('isInit returns false before init', () => {
+        expect(db.isInit()).toEqual(false)
+    })
+
+    it('isInit returns true after init', async () => {
+        await db.init()
+        expect(db.isInit()).toEqual(true)
+    })
 
     it('should connect to DB successfully', () => {
         return db.query('SELECT NOW();')
@@ -34,6 +41,11 @@ describe('DB manager', () => {
                 throw new Error('Tokens table not found')
             }
         })
+    })
+
+    it('isInit returns false after end', () => {
+        db.end()
+        expect(db.isInit()).toEqual(false)
     })
 
 })

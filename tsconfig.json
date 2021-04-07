@@ -2,7 +2,8 @@
     "compilerOptions": {
         "rootDir": "./src",
         "outDir": "./build",
-        "module": "commonjs",
+        "module": "esnext",
+        "moduleResolution": "node",
         "target": "es2020",
         "lib": ["es2020"],
         "strict": true,

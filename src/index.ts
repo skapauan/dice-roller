@@ -1,12 +1,12 @@
 import server from './server'
-import db from './db/db'
+import dbconnection from './dbconnection'
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
 const port = process.env.PORT || 3000
 const hasRandomKey = process.env.RANDOMORG_API_KEY ? true : false;
 
-db.init()
+dbconnection.init()
 .then(() => {
     server.listen(port, () => {
         console.log(`Server running on port ${port}. Random.org API key ${hasRandomKey ? 'found' : 'not found'}.`)

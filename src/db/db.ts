@@ -1,40 +1,22 @@
 import { Pool, PoolClient, PoolConfig, QueryResult } from 'pg'
+import testConfig from './testconfig'
 
-if (process.env.NODE_ENV !== 'production') require('dotenv').config()
+export default class DB {
+    
+    pool: Pool | undefined
 
-let pool: Pool | undefined
+    isInit(): boolean {
+        return !!this.pool
+    }
 
-interface Mapping {[index: string]: string}
-
-const mapEnvToConfig = (mapping: Mapping): Mapping | undefined => {
-    let config: Mapping | undefined
-    Object.keys(mapping).forEach((key) => {
-        const value: string | undefined = process.env[mapping[key]]
-        if (typeof value === 'string') {
-            config = config || {}
-            config[key] = value
-        }
-    })
-    return config
-}
-
-const configForTest: PoolConfig | undefined = mapEnvToConfig({
-    host: 'TEST_PGHOST',
-    port: 'TEST_PGPORT',
-    database: 'TEST_PGDATABASE',
-    user: 'TEST_PGUSER',
-    password: 'TEST_PGPASSWORD'
-})
-
-const db = {
-    init: (config?: PoolConfig | undefined): Promise<QueryResult> => {
-        if (!pool) {
-            if (config === undefined && process.env.NODE_ENV === 'test') {
-                config = configForTest
+    async init(config?: PoolConfig): Promise<void> {
+        if (!this.pool) {
+            if (!config && process.env.NODE_ENV === 'test') {
+                config = testConfig
             }
-            pool = new Pool(config)
+            this.pool = new Pool(config)
         }
-        return db.query(
+        const createUsersTable = this.query(
             `CREATE TABLE IF NOT EXISTS users (
                 user_id INT GENERATED ALWAYS AS IDENTITY,
                 email VARCHAR(320) NOT NULL UNIQUE,
@@ -43,37 +25,41 @@ const db = {
                 admin BOOL DEFAULT 'f'
             );`
         )
-        .then(() => db.query(
+        const createPwTokensTable = this.query(
             `CREATE TABLE IF NOT EXISTS pwtokens (
                 pwtoken_id INT GENERATED ALWAYS AS IDENTITY,
                 token TEXT NOT NULL UNIQUE,
                 user_id INT NOT NULL,
                 expires TIMESTAMP NOT NULL
             );`
-        ))
-    },
-    getClient: (): Promise<PoolClient> => {
-        if (pool) {
-            return pool.connect()
+        )
+        await createUsersTable
+        await createPwTokensTable
+    }
+    
+    getClient(): Promise<PoolClient> {
+        if (this.pool) {
+            return this.pool.connect()
         }
         return Promise.reject(new Error('Must init DB before using'))
-    },
-    query: (statement: any, client?: PoolClient): Promise<QueryResult> => {
+    }
+
+    query(statement: any, client?: PoolClient): Promise<QueryResult> {
         if (client && typeof client.query === 'function') {
             return client.query(statement)
-        } else if (pool) {
-            return pool.query(statement)
+        } else if (this.pool) {
+            return this.pool.query(statement)
         }
         return Promise.reject(new Error('Must init DB before using'))
-    },
-    end: (): boolean => {
-        if (pool !== undefined) {
-            pool.end()
-            pool = undefined
+    }
+
+    end(config?: string): boolean {
+        if (this.pool) {
+            this.pool.end()
+            this.pool = undefined
             return true
         }
         return false
     }
-}
 
-export default db
+}

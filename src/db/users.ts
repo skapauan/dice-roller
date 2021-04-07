@@ -1,7 +1,7 @@
 import argon2 from 'argon2'
 import emailValidator from 'email-validator'
 import { PoolClient, QueryResult } from 'pg'
-import db from './db'
+import DB from './db'
 
 export interface UserCreate {
     email: string;
@@ -18,15 +18,21 @@ export interface UserResult {
     admin: boolean;
 }
 
-const usersTable = {
+export default class UsersTable {
 
-    errors: {
+    errors = {
         CREATE_EMAIL_INVALID: 'Email is invalid',
         CREATE_EMAIL_ALREADY_IN_USE: 'Email is already in use'
-    },
+    }
 
-    isEmpty: (client?: PoolClient): Promise<boolean> => {
-        return db.query(
+    db: DB
+
+    constructor(db: DB) {
+        this.db = db
+    }
+
+    isEmpty(client?: PoolClient): Promise<boolean> {
+        return this.db.query(
             `SELECT CASE WHEN EXISTS (SELECT 1 FROM users) THEN 0 ELSE 1 END AS isempty`
             , client)
         .then((result) => {
@@ -42,10 +48,10 @@ const usersTable = {
                 throw new Error('Unexpected number of rows in result')
             }
         })
-    },
+    }
     
-    findById: (user_id: number, client?: PoolClient): Promise<UserResult | null> => {
-        return db.query({
+    findById(user_id: number, client?: PoolClient): Promise<UserResult | null> {
+        return this.db.query({
             text: 'SELECT * FROM users WHERE user_id = $1;',
             values: [user_id]
         }, client)
@@ -55,10 +61,10 @@ const usersTable = {
             }
             return null
         })
-    },
+    }
     
-    findByEmail: (email: string, client?: PoolClient): Promise<UserResult | null> => {
-        return db.query({
+    findByEmail(email: string, client?: PoolClient): Promise<UserResult | null> {
+        return this.db.query({
             text: 'SELECT * FROM users WHERE email = $1;',
             values: [email]
         }, client)
@@ -68,10 +74,10 @@ const usersTable = {
             }
             return null
         })
-    },
+    }
 
-    deleteByEmail: (email: string, client?: PoolClient): Promise<boolean> => {
-        return db.query({
+    deleteByEmail(email: string, client?: PoolClient): Promise<boolean> {
+        return this.db.query({
             text: 'DELETE FROM users WHERE email = $1;',
             values: [email]
         }, client)
@@ -81,32 +87,32 @@ const usersTable = {
             }
             return false
         })
-    },
+    }
 
-    create: async (user: UserCreate, client?: PoolClient): Promise<number> => {
+    async create(user: UserCreate, client?: PoolClient): Promise<number> {
         if (!emailValidator.validate(user.email)) {
-            return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_INVALID))
+            return Promise.reject(new Error(this.errors.CREATE_EMAIL_INVALID))
         }
         let password
         const email = user.email.trim()
-        const selectResult = await db.query({
+        const selectResult = await this.db.query({
             text: `SELECT CASE WHEN EXISTS (SELECT 1 FROM users WHERE email = $1) THEN 1 ELSE 0 END AS emailfound`,
             values: [email]
         }, client)
         if (selectResult.rows[0].emailfound === 1) {
-            return Promise.reject(new Error(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE))
+            return Promise.reject(new Error(this.errors.CREATE_EMAIL_ALREADY_IN_USE))
         }
         if (typeof user.password === 'string') {
             password = await argon2.hash(user.password)
         }
-        const insertResult = await db.query({
+        const insertResult = await this.db.query({
             text: `INSERT INTO users (email, nickname, password, admin) VALUES ($1, $2, $3, $4) RETURNING user_id;`,
             values: [email, user.nickname?.trim(), password, user.admin]
         }, client)
         return insertResult.rows[0].user_id
-    },
+    }
 
-    checkPassword: async (password: string, userData: UserResult): Promise<boolean> => {
+    async checkPassword(password: string, userData: UserResult): Promise<boolean> {
         if (typeof userData.password !== 'string') {
             return false
         }
@@ -118,5 +124,3 @@ const usersTable = {
     }
 
 }
-
-export default usersTable

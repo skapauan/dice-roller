@@ -1,6 +1,9 @@
-import pwtokensTable, {TokenResult} from './pwtokens'
-import db from './db'
+import PwTokensTable, {TokenResult} from './pwtokens'
+import DB from './db'
 import { PoolClient } from 'pg'
+
+const db = new DB()
+const pwtokensTable = new PwTokensTable(db)
 
 beforeAll(async () => {
     await db.init()

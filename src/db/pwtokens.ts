@@ -1,6 +1,6 @@
 import { PoolClient, QueryResult } from 'pg'
 import { nanoid } from 'nanoid'
-import db from './db'
+import DB from './db'
 
 export interface TokenResult {
     pwtoken_id: number;
@@ -10,19 +10,25 @@ export interface TokenResult {
     expired: boolean;
 }
 
-const pwtokensTable = {
+export default class PwTokensTable {
 
-    create: async (user_id: number): Promise<string> => {
+    db: DB
+
+    constructor(db: DB) {
+        this.db = db
+    }
+
+    async create(user_id: number): Promise<string> {
         const token = nanoid()
-        await db.query({
+        await this.db.query({
             text: `INSERT INTO pwtokens (token, user_id, expires) VALUES ($1, $2, now() + interval '3 hours');`,
             values: [token, user_id]
         })
         return token
-    },
+    }
     
-    findByToken: (token: string, client?: PoolClient): Promise<TokenResult> => {
-        return db.query({
+    findByToken(token: string, client?: PoolClient): Promise<TokenResult> {
+        return this.db.query({
             text: 'SELECT *, expires < now() AS expired FROM pwtokens WHERE token = $1;',
             values: [token]
         }, client)
@@ -33,10 +39,10 @@ const pwtokensTable = {
                 return null
             }
         })
-    },
+    }
 
-    deleteByToken: (token: string, client?: PoolClient): Promise<boolean> => {
-        return db.query({
+    deleteByToken(token: string, client?: PoolClient): Promise<boolean> {
+        return this.db.query({
             text: 'DELETE FROM pwtokens WHERE token = $1;',
             values: [token]
         }, client)
@@ -46,22 +52,20 @@ const pwtokensTable = {
             }
             return false
         })
-    },
+    }
 
-    deleteExpired: async (client?: PoolClient): Promise<number> => {
-        return db.query('DELETE FROM pwtokens WHERE expires < now();', client)
+    async deleteExpired(client?: PoolClient): Promise<number> {
+        return this.db.query('DELETE FROM pwtokens WHERE expires < now();', client)
         .then((result) => {
             return result.rowCount
         })
-    },
+    }
 
-    deleteAll: async (client?: PoolClient): Promise<number> => {
-        return db.query('DELETE FROM pwtokens;', client)
+    async deleteAll(client?: PoolClient): Promise<number> {
+        return this.db.query('DELETE FROM pwtokens;', client)
         .then((result) => {
             return result.rowCount
         })
     }
 
 }
-
-export default pwtokensTable

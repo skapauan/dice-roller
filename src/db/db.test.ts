@@ -5,8 +5,6 @@ import { testConfig, getTestSchema } from './testconfig'
 
 const schema = getTestSchema()
 
-// Test Helpers
-
 const hasSchema = (database: DB, schemaName: string): Promise<boolean> => {
     return database.query({
         text: 'SELECT schema_name FROM information_schema.schemata WHERE schema_name = $1;',
@@ -33,8 +31,6 @@ const dropTable = (database: DB, schemaName: string, tableName: string): Promise
         format('DROP TABLE IF EXISTS %I.%I CASCADE;', schemaName, tableName)
     ).then(() => undefined)
 }
-
-// Tests
 
 describe('DB manager', () => {
 
@@ -119,96 +115,6 @@ describe('DB manager', () => {
             expect(await hasTable(db2, schema, 'users')).toEqual(true)
             expect(await hasTable(db2, schema, 'pwtokens')).toEqual(true)
             db2.end()
-        })
-
-    })
-
-})
-
-describe('Test helpers for DB manager', () => {
-
-    describe('hasSchema', () => {
-        const db1 = new DB(testConfig)
-        const schema1 = 'just_testing_has_schema'
-
-        beforeAll(async () => await db1.init())
-        afterAll(() => db1.end())
-
-        it('returns false if schema does not exist', async () => {
-            await db1.query(format('DROP SCHEMA IF EXISTS %I CASCADE;', schema1))
-            expect(await hasSchema(db1, schema1)).toEqual(false)
-        })
-
-        it('returns true if schema exists', async () => {
-            await db1.query(format('CREATE SCHEMA %I;', schema1))
-            expect(await hasSchema(db1, schema1)).toEqual(true)
-        })
-
-    })
-
-    describe('dropSchema', () => {
-        const db1 = new DB(testConfig)
-        const schema1 = 'just_testing_drop_schema'
-
-        beforeAll(async () => await db1.init())
-        afterAll(() => db1.end())
-
-        it('drops a schema if it exists', async () => {
-            await db1.query(format('CREATE SCHEMA IF NOT EXISTS %I;', schema1))
-            expect(await hasSchema(db1, schema1)).toEqual(true)
-            await dropSchema(db1, schema1)
-            expect(await hasSchema(db1, schema1)).toEqual(false)
-        })
-
-        it('throws no errors if schema does not exist', async () => {
-            await dropSchema(db1, schema1)
-            await dropSchema(db1, schema1)
-        })
-
-    })
-
-    describe('hasTable', () => {
-        const db1 = new DB(testConfig)
-        const schema1 = 'just_testing_has_table'
-        const table1 = 'testable'
-
-        beforeAll(async () => await db1.init())
-        afterAll(() => db1.end())
-
-        it('returns false if table does not exist', async () => {
-            await db1.query(format('CREATE SCHEMA IF NOT EXISTS %I;', schema1))
-            await db1.query(format('DROP TABLE IF EXISTS %I.%I CASCADE;', schema1, table1))
-            expect(await hasTable(db1, schema1, table1)).toEqual(false)
-        })
-
-        it('returns true if table exists', async () => {
-            await db1.query(format('CREATE TABLE %I.%I ( favorite integer );', schema1, table1))
-            expect(await hasTable(db1, schema1, table1)).toEqual(true)
-        })
-
-    })
-
-    describe('dropTable', () => {
-        const db1 = new DB(testConfig)
-        const schema1 = 'just_testing_drop_table'
-        const table1 = 'testable'
-
-        beforeAll(async () => await db1.init())
-        afterAll(() => db1.end())
-
-        it('drops a table if it exists', async () => {
-            await db1.query(format('CREATE SCHEMA IF NOT EXISTS %I;', schema1))
-            await db1.query(
-                format('CREATE TABLE IF NOT EXISTS %I.%I ( favorite integer );', schema1, table1)
-            )
-            expect(await hasTable(db1, schema1, table1)).toEqual(true)
-            await dropTable(db1, schema1, table1)
-            expect(await hasTable(db1, schema1, table1)).toEqual(false)
-        })
-
-        it('throws no errors if table does not exist', async () => {
-            await dropTable(db1, schema1, table1)
-            await dropTable(db1, schema1, table1)
         })
 
     })

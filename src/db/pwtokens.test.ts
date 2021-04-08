@@ -1,9 +1,11 @@
 import { PoolClient } from 'pg'
+import format from 'pg-format'
 import PwTokensTable, { TokenResult } from './pwtokens'
-import { testConfig } from './testconfig'
+import { testConfig, getTestSchema } from './testconfig'
 import DB from './db'
 
-const db = new DB(testConfig)
+const schema = getTestSchema()
+const db = new DB(testConfig, schema)
 const pwtokensTable = new PwTokensTable(db)
 
 beforeAll(async () => {
@@ -35,12 +37,14 @@ const absentTokens: Array<TokenToInsert> = [
 ]
 
 const clearTable = async (client?: PoolClient): Promise<void> => {
-    await db.query('DELETE FROM pwtokens;', client)
+    await db.query(format('DELETE FROM %I.pwtokens;', schema), client)
 }
 
 const insertToken = async (token: TokenToInsert, client?: PoolClient): Promise<void> => {
     await db.query({
-        text: 'INSERT INTO pwtokens (token, user_id, expires) VALUES ($1, $2, $3);',
+        text: format(
+            'INSERT INTO %I.pwtokens (token, user_id, expires) VALUES ($1, $2, $3);',
+            schema),
         values: [token.token, token.user_id, token.expires]
     }, client)
 }
@@ -67,7 +71,7 @@ const tableMatchesData = async (data: Array<TokenToInsert>): Promise<boolean> =>
     if (remainingTokens.size !== data.length) {
         return Promise.reject(new Error('Duplicate tokens in data'))
     }
-    const table = await db.query(`SELECT * FROM pwtokens;`)
+    const table = await db.query(format('SELECT * FROM %I.pwtokens;', schema))
     if (table.rowCount !== data.length) {
         return false
     }

@@ -1,6 +1,7 @@
 import argon2 from 'argon2'
 import emailValidator from 'email-validator'
 import { PoolClient, QueryResult } from 'pg'
+import format from 'pg-format'
 import DB from './db'
 
 export interface UserCreate {
@@ -32,9 +33,10 @@ export default class UsersTable {
     }
 
     isEmpty(client?: PoolClient): Promise<boolean> {
-        return this.db.query(
-            `SELECT CASE WHEN EXISTS (SELECT 1 FROM users) THEN 0 ELSE 1 END AS isempty`
-            , client)
+        return this.db.query(format(
+            `SELECT CASE WHEN EXISTS (SELECT 1 FROM %I.users) THEN 0 ELSE 1 END AS isempty`,
+            this.db.schema
+        ), client)
         .then((result) => {
             if (result.rows.length === 1) {
                 if (result.rows[0].isempty === 0) {
@@ -52,7 +54,7 @@ export default class UsersTable {
     
     findById(user_id: number, client?: PoolClient): Promise<UserResult | null> {
         return this.db.query({
-            text: 'SELECT * FROM users WHERE user_id = $1;',
+            text: format('SELECT * FROM %I.users WHERE user_id = $1;', this.db.schema),
             values: [user_id]
         }, client)
         .then((result) => {
@@ -65,7 +67,7 @@ export default class UsersTable {
     
     findByEmail(email: string, client?: PoolClient): Promise<UserResult | null> {
         return this.db.query({
-            text: 'SELECT * FROM users WHERE email = $1;',
+            text: format('SELECT * FROM %I.users WHERE email = $1;', this.db.schema),
             values: [email]
         }, client)
         .then((result) => {
@@ -78,7 +80,7 @@ export default class UsersTable {
 
     deleteByEmail(email: string, client?: PoolClient): Promise<boolean> {
         return this.db.query({
-            text: 'DELETE FROM users WHERE email = $1;',
+            text: format('DELETE FROM %I.users WHERE email = $1;', this.db.schema),
             values: [email]
         }, client)
         .then((result) => {
@@ -96,7 +98,8 @@ export default class UsersTable {
         let password
         const email = user.email.trim()
         const selectResult = await this.db.query({
-            text: `SELECT CASE WHEN EXISTS (SELECT 1 FROM users WHERE email = $1) THEN 1 ELSE 0 END AS emailfound`,
+            text: format(`SELECT CASE WHEN EXISTS (SELECT 1 FROM %I.users WHERE email = $1)
+                THEN 1 ELSE 0 END AS emailfound`, this.db.schema),
             values: [email]
         }, client)
         if (selectResult.rows[0].emailfound === 1) {
@@ -106,7 +109,8 @@ export default class UsersTable {
             password = await argon2.hash(user.password)
         }
         const insertResult = await this.db.query({
-            text: `INSERT INTO users (email, nickname, password, admin) VALUES ($1, $2, $3, $4) RETURNING user_id;`,
+            text: format(`INSERT INTO %I.users (email, nickname, password, admin)
+                VALUES ($1, $2, $3, $4) RETURNING user_id;`, this.db.schema),
             values: [email, user.nickname?.trim(), password, user.admin]
         }, client)
         return insertResult.rows[0].user_id

@@ -1,9 +1,12 @@
 import argon2 from 'argon2'
+import { PoolClient } from 'pg'
+import format from 'pg-format'
 import UsersTable, { UserCreate, UserResult } from './users'
-import { testConfig } from './testconfig'
+import { testConfig, getTestSchema } from './testconfig'
 import DB from './db'
 
-const db = new DB(testConfig)
+const schema = getTestSchema()
+const db = new DB(testConfig, schema)
 const usersTable = new UsersTable(db)
 
 beforeAll(async () => {
@@ -14,12 +17,39 @@ afterAll(() => {
     db.end()
 })
 
+const insertUser = (config?: {email: string, nickname?: string, password?: string, 
+                                admin?: boolean, client?: PoolClient}) => {
+    let { email, nickname, password, admin, client } = config || {}
+    return db.query({
+        text: format(`INSERT INTO %I.users (email, nickname, password, admin)
+            VALUES ($1, $2, $3, $4);`, schema),
+        values: [email, nickname, password, admin]
+    }, client)
+}
+
+const deleteUsers = (config?: {email?: string, id?: number, client?: PoolClient}) => {
+    let { email, id, client } = config || {}
+    if (typeof email === 'string') {
+        return db.query({
+            text: format('DELETE FROM %I.users WHERE email = $1;', schema),
+            values: [email]
+        }, client)
+    }
+    if (typeof id === 'number') {
+        return db.query({
+            text: format('DELETE FROM %I.users WHERE user_id = $1', schema),
+            values: [id]
+        }, client)
+    }
+    return db.query(format(`DELETE FROM %I.users;`, schema), client)
+}
+
 describe('Users table', () => {
 
     describe('isEmpty', () => {
 
         it('returns true if users table is empty', async () => {
-            await db.query(`DELETE FROM users;`)
+            await deleteUsers()
             const result = await usersTable.isEmpty()
             expect(result).toEqual(true)
         })
@@ -27,10 +57,7 @@ describe('Users table', () => {
         it('returns false if users table is not empty', async () => {
             const client = await db.getClient()
             try {
-                await db.query({
-                    text: `INSERT INTO users (email, nickname) VALUES ($1, $2);`,
-                    values: ['squirrel@example.com', 'Squirrel']
-                }, client)
+                await insertUser({email: 'squirrel@example.com', nickname: 'Squirrel', client})
                 const result = await usersTable.isEmpty(client)
                 expect(result).toEqual(false)
             } catch (error) {
@@ -51,14 +78,8 @@ describe('Users table', () => {
                 const nickname ='Chipmunk'
                 const password = 'password' + parseInt((Math.random() * 1000000000).toString(), 10)
                 const admin = true
-                await db.query({
-                    text: 'DELETE FROM users WHERE email = $1;',
-                    values: [email]
-                }, client)
-                await db.query({
-                    text: `INSERT INTO users (email, nickname, password, admin) VALUES ($1, $2, $3, $4);`,
-                    values: [email, nickname, password, admin]
-                }, client)
+                await deleteUsers({email, client})
+                await insertUser({email, nickname, password, admin, client})
                 const result = await usersTable.findByEmail(email, client)
                 expect(result).not.toBeNull()
                 if (!result) return // make ts compiler happy
@@ -78,10 +99,7 @@ describe('Users table', () => {
 
         it ('returns null if no user has the email', async () => {
             const email = 'vole@example.com'
-            await db.query({
-                text: 'DELETE FROM users WHERE email = $1',
-                values: [email]
-            })
+            await deleteUsers({email})
             const result = await usersTable.findByEmail(email)
             expect(result).toBeNull()
         })
@@ -101,10 +119,7 @@ describe('Users table', () => {
 
         it('returns false if no user has the email', async () => {
             const email = 'beaver@example.com'
-            await db.query({
-                text: 'DELETE FROM users WHERE email = $1',
-                values: [email]
-            })
+            await deleteUsers({email})
             const result = await usersTable.deleteByEmail(email)
             expect(result).toEqual(false)
         })
@@ -121,14 +136,8 @@ describe('Users table', () => {
                 const nickname = undefined
                 const password = 'password' + parseInt((Math.random() * 1000000000).toString(), 10)
                 const admin = false
-                await db.query({
-                    text: 'DELETE FROM users WHERE email = $1;',
-                    values: [email]
-                }, client)
-                await db.query({
-                    text: `INSERT INTO users (email, nickname, password, admin) VALUES ($1, $2, $3, $4);`,
-                    values: [email, nickname, password, admin]
-                }, client)
+                await deleteUsers({email, client})
+                await insertUser({email, nickname, password, admin, client})
                 // Get user_id of the added user
                 const resultByEmail = await usersTable.findByEmail(email, client)
                 expect(resultByEmail).not.toBeNull()
@@ -154,10 +163,7 @@ describe('Users table', () => {
 
         it ('returns null if no user has the ID', async () => {
             const id = 9999999
-            await db.query({
-                text: 'DELETE FROM users WHERE user_id = $1',
-                values: [id]
-            })
+            await deleteUsers({id})
             const result = await usersTable.findById(id)
             expect(result).toBeNull()
         })
@@ -234,21 +240,21 @@ describe('Users table', () => {
 
         it('adds a user and returns its user_id if the email is not yet registered',
         async () => {
-            await db.query(`DELETE FROM users;`)
+            await deleteUsers()
             const id = await usersTable.create(user2)
             const info = await usersTable.findById(id)
             expect(info).toMatchObject(user2result)
         })
 
         it('trims nickname before saving', async () => {
-            await db.query(`DELETE FROM users;`)
+            await deleteUsers()
             const id = await usersTable.create({...user2, nickname: ` \r\n \t ${user2.nickname}  \xa0 `})
             const info = await usersTable.findById(id)
             expect(info).toMatchObject(user2result)
         })
 
         it('hashes password before saving', async () => {
-            await db.query(`DELETE FROM users;`)
+            await deleteUsers()
             const id = await usersTable.create(user2)
             const info = await usersTable.findById(id)
             expect(info).not.toBeNull()
@@ -259,7 +265,7 @@ describe('Users table', () => {
         })
 
         it('saves an undefined password as null in the database', async () => {
-            await db.query(`DELETE FROM users;`)
+            await deleteUsers()
             const user = {...user2}
             user.password = undefined
             const userResult = {...user2} as any
@@ -273,7 +279,7 @@ describe('Users table', () => {
         async () => {
             const client = await db.getClient()
             try {
-                await db.query(`DELETE FROM users;`, client)
+                await deleteUsers({client})
                 await usersTable.create(user1, client)
                 const createUserWithExistingUserEmail = () => {
                     return usersTable.create(user2, client)

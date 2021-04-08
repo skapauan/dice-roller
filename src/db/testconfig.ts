@@ -4,6 +4,7 @@ import { PoolConfig } from 'pg'
 
 export let testPrefix: string = ''
 export let testConfig: PoolConfig | undefined
+export const getTestSchema = () => testPrefix + process.env.JEST_WORKER_ID
 
 if (process.env.NODE_ENV === 'test') {
     

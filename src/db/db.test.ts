@@ -1,8 +1,9 @@
 import DB from './db'
+import { testConfig } from './testconfig'
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
-const db = new DB()
+const db = new DB(testConfig)
 
 afterAll(async () => {
     await db.end()

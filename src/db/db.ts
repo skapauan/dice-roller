@@ -1,20 +1,24 @@
 import { Pool, PoolClient, PoolConfig, QueryResult } from 'pg'
-import testConfig from './testconfig'
 
 export default class DB {
     
-    pool: Pool | undefined
+    private pool: Pool | undefined
+    readonly config: PoolConfig | undefined
+
+    constructor(config?: PoolConfig) {
+        // If no config provided, pg will get it from environment variables
+        if (config) {
+            this.config = { ...config }
+        }
+    }
 
     isInit(): boolean {
         return !!this.pool
     }
 
-    async init(config?: PoolConfig): Promise<void> {
+    async init(): Promise<void> {
         if (!this.pool) {
-            if (!config && process.env.NODE_ENV === 'test') {
-                config = testConfig
-            }
-            this.pool = new Pool(config)
+            this.pool = new Pool(this.config)
         }
         const createUsersTable = this.query(
             `CREATE TABLE IF NOT EXISTS users (

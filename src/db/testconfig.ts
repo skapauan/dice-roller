@@ -1,10 +1,9 @@
-// These DB config values are to be used in the test environment only
+// These values are to be used in the test environment only
 
 import { PoolConfig } from 'pg'
 
-export let testDbPrefix: string = 'testdb_'
-
-let testConfig: PoolConfig | undefined
+export let testPrefix: string = ''
+export let testConfig: PoolConfig | undefined
 
 if (process.env.NODE_ENV === 'test') {
     
@@ -32,10 +31,6 @@ if (process.env.NODE_ENV === 'test') {
         password: 'TEST_PGPASSWORD'
     })
 
-    if (testConfig && testConfig.database) {
-        testDbPrefix = testConfig.database + '_'
-    }
+    testPrefix = 'test_'
 
 }
-
-export default testConfig

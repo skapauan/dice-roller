@@ -1,13 +1,17 @@
 import request from 'supertest'
-import dbconnection from './dbconnection'
-import server from './server'
+import getServer from './server'
+import DB from './db/db'
+import { testConfig } from './db/testconfig'
+
+const db = new DB(testConfig)
+const server = getServer(db)
 
 beforeAll(async () => {
-    await dbconnection.init()
+    await db.init()
 })
 
 afterAll(() => {
-    dbconnection.end()
+    db.end()
 })
 
 describe('Home page', () => {

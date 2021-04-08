@@ -1,4 +1,4 @@
-import testConfig, { testDbPrefix } from './testconfig'
+import { testConfig, testPrefix } from './testconfig'
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
@@ -11,8 +11,13 @@ describe('Test Config', () => {
         }
     })
 
-    it('Should export a test DB prefix based on TEST_PGDATABASE', () => {
-        expect(testDbPrefix).toEqual(process.env.TEST_PGDATABASE + '_')
+})
+
+describe('Test Prefix', () => {
+
+    it('Is a prefix that can be used to name schemas during testing', () => {
+        expect(typeof testPrefix).toEqual('string')
+        expect(testPrefix).toMatch(/^[a-zA-Z_][a-zA-Z_0-9\$]*$/)
     })
 
 })

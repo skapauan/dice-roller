@@ -1,13 +1,14 @@
 import request from 'supertest'
 import express from 'express'
 import getRouter from './login'
+import { testConfig } from '../db/testconfig'
 import DB from '../db/db'
 import PwTokensTable from '../db/pwtokens'
 import UsersTable from '../db/users'
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
-const db = new DB()
+const db = new DB(testConfig)
 const pwtokensTable = new PwTokensTable(db)
 const usersTable = new UsersTable(db)
 

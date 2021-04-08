@@ -1,15 +1,18 @@
 import { Pool, PoolClient, PoolConfig, QueryResult } from 'pg'
+import format from 'pg-format'
 
 export default class DB {
     
     private pool: Pool | undefined
     readonly config: PoolConfig | undefined
+    readonly schema: string = 'public'
 
-    constructor(config?: PoolConfig) {
-        // If no config provided, pg will get it from environment variables
+    constructor(config?: PoolConfig, schema?: string) {
         if (config) {
             this.config = { ...config }
         }
+        const schemaClean = schema?.trim().toLowerCase()
+        this.schema = schemaClean ? schemaClean : 'public'
     }
 
     isInit(): boolean {
@@ -20,23 +23,31 @@ export default class DB {
         if (!this.pool) {
             this.pool = new Pool(this.config)
         }
-        const createUsersTable = this.query(
-            `CREATE TABLE IF NOT EXISTS users (
+        if (this.schema !== 'public') {
+            await this.query(format(
+                `CREATE SCHEMA IF NOT EXISTS %I;`,
+                this.schema
+            )) 
+        }
+        const createUsersTable = this.query(format(
+            `CREATE TABLE IF NOT EXISTS %I.users (
                 user_id INT GENERATED ALWAYS AS IDENTITY,
                 email VARCHAR(320) NOT NULL UNIQUE,
                 password TEXT,
                 nickname TEXT,
                 admin BOOL DEFAULT 'f'
-            );`
-        )
-        const createPwTokensTable = this.query(
-            `CREATE TABLE IF NOT EXISTS pwtokens (
+            );`,
+            this.schema
+        ))
+        const createPwTokensTable = this.query(format(
+            `CREATE TABLE IF NOT EXISTS %I.pwtokens (
                 pwtoken_id INT GENERATED ALWAYS AS IDENTITY,
                 token TEXT NOT NULL UNIQUE,
                 user_id INT NOT NULL,
                 expires TIMESTAMP NOT NULL
-            );`
-        )
+            );`,
+            this.schema
+        ))
         await createUsersTable
         await createPwTokensTable
     }
@@ -57,7 +68,7 @@ export default class DB {
         return Promise.reject(new Error('Must init DB before using'))
     }
 
-    end(config?: string): boolean {
+    end(): boolean {
         if (this.pool) {
             this.pool.end()
             this.pool = undefined

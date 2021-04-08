@@ -1,9 +1,9 @@
 
 import format from 'pg-format'
 import DB from './db'
-import { testConfig } from './testconfig'
+import { testConfig, getTestSchema } from './testconfig'
 
-const schema = 'just_testing_db'
+const schema = getTestSchema()
 
 // Test Helpers
 

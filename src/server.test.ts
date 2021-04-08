@@ -1,9 +1,10 @@
 import request from 'supertest'
 import getServer from './server'
 import DB from './db/db'
-import { testConfig } from './db/testconfig'
+import { testConfig, getTestSchema } from './db/testconfig'
 
-const db = new DB(testConfig)
+const schema = getTestSchema()
+const db = new DB(testConfig, schema)
 const server = getServer(db)
 
 beforeAll(async () => {

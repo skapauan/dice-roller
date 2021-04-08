@@ -1,13 +1,15 @@
 import request from 'supertest'
 import express from 'express'
+import format from 'pg-format'
 import getRouter from './password'
-import { testConfig } from '../db/testconfig'
+import { testConfig, getTestSchema } from '../db/testconfig'
 import DB from '../db/db'
 import UsersTable from '../db/users'
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
-const db = new DB(testConfig)
+const schema = getTestSchema()
+const db = new DB(testConfig, schema)
 const usersTable = new UsersTable(db)
 
 const app = express()
@@ -33,7 +35,7 @@ describe('Password service', () => {
     describe('before any users created', () => {
 
         beforeEach(async () => {
-            await db.query('DELETE FROM users;')
+            await db.query(format('DELETE FROM %I.users;', schema))
         })
 
         it('creates an initial admin user if token is valid and user is INITIAL_ADMIN', () => {

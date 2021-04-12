@@ -40,7 +40,7 @@ describe('Password service', () => {
             await db.query(format('DELETE FROM %I.users;', schema))
         })
 
-        it('creates initial admin user if token exists', () => {
+        it('creates initial admin user if token exists and is not expired', () => {
             const initialAdmin: string = (process.env.INITIAL_ADMIN || '').trim()
             if (!initialAdmin) {
                 return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'))
@@ -81,6 +81,38 @@ describe('Password service', () => {
             const token = 'oh yes a totally legit token right here'
             const newPassword = 'my new password'
             return pwtokensTable.deleteByToken(token)
+            .then(() => request(app)
+                .post('/')
+                .type('application/json')
+                .send({ token, user: initialAdmin, newPassword })
+                .expect(403)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailBody(res)
+                    return usersTable.findByEmail(initialAdmin)
+                })
+                .then((user) => {
+                    expect(user).toBeNull()
+                })
+            )
+        })
+        
+        it('does not create initial admin user if token is expired', () => {
+            const initialAdmin: string = (process.env.INITIAL_ADMIN || '').trim()
+            if (!initialAdmin) {
+                return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'))
+            }
+            const newPassword = 'my new password'
+            const expires = new Date('October 31, 1998 23:11:00')
+            let token: string
+            return pwtokensTable.create(-999)
+            .then((t) => {
+                token = t
+                return db.query({
+                    text: format('UPDATE %I.pwtokens SET expires = $1 WHERE token = $2;', schema), 
+                    values: [expires, token]
+                })
+            })
             .then(() => request(app)
                 .post('/')
                 .type('application/json')

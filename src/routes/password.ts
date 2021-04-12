@@ -13,7 +13,7 @@ export const getRouter = (db: DB) => {
     .post(async (req, res, next) => {
         res.setHeader('Content-Type', 'application/json')
         const token = await pwtokensTable.findByToken(req.body.token)
-        if (token) {
+        if (token && !token.expired) {
             const user: UserCreate = {
                 email: req.body.user,
                 nickname: 'Admin',

@@ -40,7 +40,7 @@ describe('Password service', () => {
             await db.query(format('DELETE FROM %I.users;', schema))
         })
 
-        it('creates initial admin user if token exists and is not expired', () => {
+        it('creates initial admin user if token exists and is not expired, and user is INITIAL_ADMIN', () => {
             const initialAdmin: string = (process.env.INITIAL_ADMIN || '').trim()
             if (!initialAdmin) {
                 return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'))
@@ -122,6 +122,40 @@ describe('Password service', () => {
                 .then((res) => {
                     expectFailBody(res)
                     return usersTable.findByEmail(initialAdmin)
+                })
+                .then((user) => {
+                    expect(user).toBeNull()
+                })
+            )
+        })
+
+        it('does not create initial admin user if user is not INITIAL_ADMIN', () => {
+            const notAdminUser = 'NotAdmin@example.com'
+            const initialAdmin: string = (process.env.INITIAL_ADMIN || '').trim()
+            if (!initialAdmin) {
+                return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'))
+            }
+            if (notAdminUser === initialAdmin) {
+                return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'
+                    + ' to a value other than ' + notAdminUser))
+            }
+            const newPassword = 'my new password'
+            return pwtokensTable.create(-999)
+            .then((token) => request(app)
+                .post('/')
+                .type('application/json')
+                .send({ token, user: notAdminUser, newPassword })
+                .expect(403)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailBody(res)
+                    return usersTable.findByEmail(initialAdmin)
+                })
+                .then((user) => {
+                    expect(user).toBeNull()
+                })
+                .then(() => {
+                    return usersTable.findByEmail(notAdminUser)
                 })
                 .then((user) => {
                     expect(user).toBeNull()

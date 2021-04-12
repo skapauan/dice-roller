@@ -4,12 +4,14 @@ import format from 'pg-format'
 import getRouter from './password'
 import { testConfig, getTestSchema } from '../db/testconfig'
 import DB from '../db/db'
+import PwTokensTable from '../db/pwtokens'
 import UsersTable from '../db/users'
 
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
 const schema = getTestSchema()
 const db = new DB(testConfig, schema)
+const pwtokensTable = new PwTokensTable(db)
 const usersTable = new UsersTable(db)
 
 const app = express()
@@ -38,32 +40,61 @@ describe('Password service', () => {
             await db.query(format('DELETE FROM %I.users;', schema))
         })
 
-        it('creates an initial admin user if token is valid and user is INITIAL_ADMIN', () => {
-            return request(app)
+        it('creates initial admin user if token exists', () => {
+            const initialAdmin: string = (process.env.INITIAL_ADMIN || '').trim()
+            if (!initialAdmin) {
+                return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'))
+            }
+            const newPassword = 'my new password'
+            return pwtokensTable.create(-999)
+            .then((token) => request(app)
                 .post('/')
                 .type('application/json')
-                .send({ token: 'a token', user: process.env.INITIAL_ADMIN, newPassword: 'my new password' })
+                .send({ token, user: initialAdmin, newPassword })
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .then((res) => {
                     expect(res.body).toHaveProperty('success', true)
-                    expect(typeof process.env.INITIAL_ADMIN).toEqual('string')
-                    if (!process.env.INITIAL_ADMIN) return null // make ts compiler happy
-                    return usersTable.findByEmail(process.env.INITIAL_ADMIN)
+                    return usersTable.findByEmail(initialAdmin)
                 })
                 .then((user) => {
                     expect(user).not.toBeNull()
                     if (!user) return false // make ts compiler happy
                     expect(user).toMatchObject({
-                        email: process.env.INITIAL_ADMIN,
+                        email: initialAdmin,
                         nickname: 'Admin',
                         admin: true
                     })
-                    return usersTable.checkPassword('my new password', user)
+                    return usersTable.checkPassword(newPassword, user)
                 })
                 .then((passwordMatches) => {
                     expect(passwordMatches).toEqual(true)
                 })
+            )
+        })
+
+        it('does not create initial admin user if token does not exist', () => {
+            const initialAdmin: string = (process.env.INITIAL_ADMIN || '').trim()
+            if (!initialAdmin) {
+                return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'))
+            }
+            const token = 'oh yes a totally legit token right here'
+            const newPassword = 'my new password'
+            return pwtokensTable.deleteByToken(token)
+            .then(() => request(app)
+                .post('/')
+                .type('application/json')
+                .send({ token, user: initialAdmin, newPassword })
+                .expect(403)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailBody(res)
+                    return usersTable.findByEmail(initialAdmin)
+                })
+                .then((user) => {
+                    expect(user).toBeNull()
+                })
+            )
         })
 
     })

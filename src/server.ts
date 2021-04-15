@@ -1,16 +1,15 @@
 import http from 'http'
 import express from 'express'
 import passport from 'passport'
-import path from 'path'
-import DB from './db/db'
-import loginRouter from './routes/login'
-import passwordRouter from './routes/password'
+import DB from './db/db.js'
+import loginRouter from './routes/login.js'
+import passwordRouter from './routes/password.js'
 
-export default (db: DB) => {
+export default (db: DB, staticFilePath: string) => {
     const app = express()
     app.use(passport.initialize())
     app.use(passport.session())
-    app.use(express.static(path.join(__dirname, '..', 'public')))
+    app.use(express.static(staticFilePath))
     app.use(express.json())
     app.use('/login', loginRouter(db))
     app.use('/password', passwordRouter(db))

@@ -1,4 +1,4 @@
-import { Pool, PoolClient, PoolConfig, QueryResult } from 'pg'
+import pg, { Pool, PoolClient, PoolConfig, QueryResult } from 'pg'
 import format from 'pg-format'
 
 export default class DB {
@@ -21,7 +21,7 @@ export default class DB {
 
     async init(): Promise<void> {
         if (!this.pool) {
-            this.pool = new Pool(this.config)
+            this.pool = new pg.Pool(this.config)
         }
         if (this.schema !== 'public') {
             await this.query(format(

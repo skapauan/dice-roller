@@ -1,3 +1,3 @@
-import DB from './db/db'
+import DB from './db/db.js'
 
 export default new DB()

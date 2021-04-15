@@ -2,7 +2,7 @@ import argon2 from 'argon2'
 import emailValidator from 'email-validator'
 import { PoolClient, QueryResult } from 'pg'
 import format from 'pg-format'
-import DB from './db'
+import DB from './db.js'
 
 export interface UserCreate {
     email: string;

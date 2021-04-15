@@ -1,7 +1,7 @@
 import { PoolClient, QueryResult } from 'pg'
 import format from 'pg-format'
 import { nanoid } from 'nanoid'
-import DB from './db'
+import DB from './db.js'
 
 export interface TokenResult {
     pwtoken_id: number;

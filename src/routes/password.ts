@@ -1,8 +1,8 @@
 import express from 'express'
 import bodyParser from 'body-parser'
-import DB from '../db/db'
-import UsersTable, { UserCreate } from '../db/users'
-import PwTokensTable from '../db/pwtokens'
+import DB from '../db/db.js'
+import UsersTable, { UserCreate } from '../db/users.js'
+import PwTokensTable from '../db/pwtokens.js'
 
 export const getRouter = (db: DB) => {
     const usersTable = new UsersTable(db)

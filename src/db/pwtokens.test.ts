@@ -1,6 +1,6 @@
 import { PoolClient } from 'pg'
 import format from 'pg-format'
-import PwTokensTable, { TokenResult } from './pwtokens'
+import PwTokensTable from './pwtokens'
 import { testConfig, getTestSchema } from './testconfig'
 import DB from './db'
 

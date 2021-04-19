@@ -1,4 +1,4 @@
-import { PoolClient, QueryResult } from 'pg'
+import { PoolClient } from 'pg'
 import format from 'pg-format'
 import { nanoid } from 'nanoid'
 import DB from './db.js'

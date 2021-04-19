@@ -7,16 +7,16 @@ import DB from '../db/db'
 import PwTokensTable from '../db/pwtokens'
 import UsersTable from '../db/users'
 
-if (process.env.NODE_ENV !== 'production') require('dotenv').config()
-
 const schema = getTestSchema()
 const db = new DB(testConfig, schema)
 const pwtokensTable = new PwTokensTable(db)
 const usersTable = new UsersTable(db)
+const initialAdmin = 'initial.admin@example.com'
+const env = { INITIAL_ADMIN: initialAdmin }
 
 const app = express()
 app.use(express.json())
-app.use('/', getRouter(db))
+app.use('/', getRouter(db, env))
 
 beforeAll(async () => {
     await db.init()
@@ -41,10 +41,6 @@ describe('Password service', () => {
         })
 
         it('creates initial admin user if token exists and is not expired, and user is INITIAL_ADMIN', () => {
-            const initialAdmin: string = (process.env.INITIAL_ADMIN || '').trim()
-            if (!initialAdmin) {
-                return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'))
-            }
             const newPassword = 'my new password'
             return pwtokensTable.create(-999)
             .then((token) => request(app)
@@ -74,10 +70,6 @@ describe('Password service', () => {
         })
 
         it('does not create initial admin user if token does not exist', () => {
-            const initialAdmin: string = (process.env.INITIAL_ADMIN || '').trim()
-            if (!initialAdmin) {
-                return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'))
-            }
             const token = 'oh yes a totally legit token right here'
             const newPassword = 'my new password'
             return pwtokensTable.deleteByToken(token)
@@ -98,10 +90,6 @@ describe('Password service', () => {
         })
         
         it('does not create initial admin user if token is expired', () => {
-            const initialAdmin: string = (process.env.INITIAL_ADMIN || '').trim()
-            if (!initialAdmin) {
-                return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'))
-            }
             const newPassword = 'my new password'
             const expires = new Date('October 31, 1998 23:11:00')
             let token: string
@@ -131,14 +119,6 @@ describe('Password service', () => {
 
         it('does not create initial admin user if user is not INITIAL_ADMIN', () => {
             const notAdminUser = 'NotAdmin@example.com'
-            const initialAdmin: string = (process.env.INITIAL_ADMIN || '').trim()
-            if (!initialAdmin) {
-                return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'))
-            }
-            if (notAdminUser === initialAdmin) {
-                return Promise.reject(new Error('Please set environment variable INITIAL_ADMIN'
-                    + ' to a value other than ' + notAdminUser))
-            }
             const newPassword = 'my new password'
             return pwtokensTable.create(-999)
             .then((token) => request(app)

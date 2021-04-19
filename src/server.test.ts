@@ -6,7 +6,7 @@ import { testConfig, getTestSchema } from './db/testconfig'
 
 const schema = getTestSchema()
 const db = new DB(testConfig, schema)
-const server = getServer(db, path.join(__dirname, '..', 'public'))
+const server = getServer(db, path.join(__dirname, '..', 'public'), process.env)
 
 beforeAll(async () => {
     await db.init()

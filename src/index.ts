@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url)
 if (process.env.NODE_ENV !== 'production') require('dotenv').config()
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
-const server = getServer(dbconnection, path.join(dirname, '..', 'public'))
+const server = getServer(dbconnection, path.join(dirname, '..', 'public'), process.env)
 const port = process.env.PORT || 3000
 const hasRandomKey = process.env.RANDOMORG_API_KEY ? true : false;
 

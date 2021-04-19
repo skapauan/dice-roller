@@ -26,7 +26,7 @@ const reqToLoginRequestBody = (req: Request): LoginRequestBody | null => {
     }
 }
 
-const getRouter = (db: DB) => {
+const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
     const usersTable = new UsersTable(db)
     const pwtokensTable = new PwTokensTable(db)
     const router = express.Router()
@@ -40,13 +40,13 @@ const getRouter = (db: DB) => {
             res.json({ success: false } as LoginResponseBody)
         } else if (await usersTable.isEmpty()) {
             // No users in table
-            if (!process.env.INITIAL_ADMIN || !process.env.INITIAL_PASSWORD) {
-                if (process.env.NODE_ENV !== 'test') {
-                    console.log('Please set INITIAL_ADMIN and INITIAL_PASSWORD environmental variables to non-empty values.')
+            if (!env.INITIAL_ADMIN || !env.INITIAL_PASSWORD) {
+                if (env.NODE_ENV !== 'test') {
+                    console.log('Please set INITIAL_ADMIN and INITIAL_PASSWORD to non-empty values.')
                 }
                 res.statusCode = 401
                 res.json({ success: false } as LoginResponseBody)
-            } else if (body.user === process.env.INITIAL_ADMIN && body.password === process.env.INITIAL_PASSWORD) {
+            } else if (body.user === env.INITIAL_ADMIN && body.password === env.INITIAL_PASSWORD) {
                 await pwtokensTable.deleteAll()
                 const resetToken = await pwtokensTable.create(-1)
                 res.statusCode = 200

@@ -12,23 +12,24 @@ export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
     router.use(bodyParser.json())
     router.route('/')
     .post(async (req, res, next) => {
-        res.setHeader('Content-Type', 'application/json')
-        const token = await pwtokensTable.findByToken(req.body.token)
-        if (token && !token.expired && req.body.user === env.INITIAL_ADMIN
-                && cleanEmail(req.body.user)) {
-            const user: UserCreate = {
-                email: req.body.user,
-                nickname: 'Admin',
-                password: req.body.newPassword,
-                admin: true
+        const email = cleanEmail(req.body.user)
+        if (email && email === cleanEmail(env.INITIAL_ADMIN || '')) {
+            const token = await pwtokensTable.findByToken(req.body.token)
+            if (token && !token.expired) {
+                const user: UserCreate = {
+                    email,
+                    nickname: 'Admin',
+                    password: req.body.newPassword,
+                    admin: true
+                }
+                await usersTable.create(user)
+                res.statusCode = 200
+                res.json({ success: true })
+                return
             }
-            await usersTable.create(user)
-            res.statusCode = 200
-            res.json({ success: true })
-        } else {
-            res.statusCode = 403
-            res.json({ success: false })
         }
+        res.statusCode = 403
+        res.json({ success: false })
     })
     return router
 }

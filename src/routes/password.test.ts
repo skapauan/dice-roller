@@ -14,6 +14,7 @@ const pwtokensTable = new PwTokensTable(db)
 const usersTable = new UsersTable(db)
 const initialAdmin = 'initial.admin@example.com'
 const env = { INITIAL_ADMIN: initialAdmin }
+const newPassword = 'my new password'
 
 const app = express()
 app.use(express.json())
@@ -42,7 +43,6 @@ describe('Password service', () => {
         })
 
         it('creates initial admin user if token exists and is not expired, and user is valid email INITIAL_ADMIN', () => {
-            const newPassword = 'my new password'
             return pwtokensTable.create(-999)
             .then((token) => request(app)
                 .post('/')
@@ -70,9 +70,45 @@ describe('Password service', () => {
             )
         })
 
+        it('creates initial admin user if email is equivalent to INITIAL_ADMIN', () => {
+            const env2 = { INITIAL_ADMIN: '  Ada.Lovelace+home@googlemail.com' }
+            const cleanAdmin = cleanEmail(env2.INITIAL_ADMIN) || ''
+            const equivAdmin = 'adalovelace+office@gmail.com \t '
+            expect(cleanEmail(equivAdmin)).toEqual(cleanAdmin)
+
+            const app2 = express()
+            app2.use(express.json())
+            app2.use('/', getRouter(db, env2))
+
+            return pwtokensTable.create(-999)
+            .then((token) => request(app2)
+                .post('/')
+                .type('application/json')
+                .send({ token, user: equivAdmin, newPassword })
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expect(res.body).toHaveProperty('success', true)
+                    return usersTable.findByEmail(cleanAdmin)
+                })
+                .then((user) => {
+                    expect(user).not.toBeNull()
+                    if (!user) return false // make ts compiler happy
+                    expect(user).toMatchObject({
+                        email: cleanAdmin,
+                        nickname: 'Admin',
+                        admin: true
+                    })
+                    return usersTable.checkPassword(newPassword, user)
+                })
+                .then((passwordMatches) => {
+                    expect(passwordMatches).toEqual(true)
+                })
+            )
+        })
+
         it('does not create initial admin user if token does not exist', () => {
             const token = 'oh yes a totally legit token right here'
-            const newPassword = 'my new password'
             return pwtokensTable.deleteByToken(token)
             .then(() => request(app)
                 .post('/')
@@ -91,7 +127,6 @@ describe('Password service', () => {
         })
         
         it('does not create initial admin user if token is expired', () => {
-            const newPassword = 'my new password'
             const expires = new Date('October 31, 1998 23:11:00')
             let token: string
             return pwtokensTable.create(-999)
@@ -120,7 +155,6 @@ describe('Password service', () => {
 
         it('does not create initial admin user if user is not INITIAL_ADMIN', () => {
             const notAdminUser = 'NotAdmin@example.com'
-            const newPassword = 'my new password'
             return pwtokensTable.create(-999)
             .then((token) => request(app)
                 .post('/')
@@ -145,7 +179,6 @@ describe('Password service', () => {
         })
 
         it('does not create initial user if INITIAL_ADMIN is not a valid email', () => {
-            const newPassword = 'my new password'
             const env2 = { INITIAL_ADMIN: 'a poor choice of email' }
             const app2 = express()
             app2.use(express.json())

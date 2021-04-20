@@ -6,6 +6,7 @@ import { testConfig, getTestSchema } from '../db/testconfig'
 import DB from '../db/db'
 import PwTokensTable from '../db/pwtokens'
 import UsersTable from '../db/users'
+import { cleanEmail } from '../string/string'
 
 const schema = getTestSchema()
 const db = new DB(testConfig, schema)
@@ -40,7 +41,7 @@ describe('Password service', () => {
             await db.query(format('DELETE FROM %I.users;', schema))
         })
 
-        it('creates initial admin user if token exists and is not expired, and user is INITIAL_ADMIN', () => {
+        it('creates initial admin user if token exists and is not expired, and user is valid email INITIAL_ADMIN', () => {
             const newPassword = 'my new password'
             return pwtokensTable.create(-999)
             .then((token) => request(app)
@@ -136,6 +137,29 @@ describe('Password service', () => {
                 })
                 .then(() => {
                     return usersTable.findByEmail(notAdminUser)
+                })
+                .then((user) => {
+                    expect(user).toBeNull()
+                })
+            )
+        })
+
+        it('does not create initial user if INITIAL_ADMIN is not a valid email', () => {
+            const newPassword = 'my new password'
+            const env2 = { INITIAL_ADMIN: 'a poor choice of email' }
+            const app2 = express()
+            app2.use(express.json())
+            app2.use('/', getRouter(db, env2))
+            return pwtokensTable.create(-999)
+            .then((token) => request(app2)
+                .post('/')
+                .type('application/json')
+                .send({ token, user: env2.INITIAL_ADMIN, newPassword })
+                .expect(403)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailBody(res)
+                    return usersTable.findByEmail(env2.INITIAL_ADMIN)
                 })
                 .then((user) => {
                     expect(user).toBeNull()

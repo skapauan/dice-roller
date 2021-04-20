@@ -3,6 +3,7 @@ import bodyParser from 'body-parser'
 import DB from '../db/db.js'
 import UsersTable, { UserCreate } from '../db/users.js'
 import PwTokensTable from '../db/pwtokens.js'
+import { cleanEmail } from '../string/string.js'
 
 export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
     const usersTable = new UsersTable(db)
@@ -13,7 +14,8 @@ export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
     .post(async (req, res, next) => {
         res.setHeader('Content-Type', 'application/json')
         const token = await pwtokensTable.findByToken(req.body.token)
-        if (token && !token.expired && req.body.user === env.INITIAL_ADMIN) {
+        if (token && !token.expired && req.body.user === env.INITIAL_ADMIN
+                && cleanEmail(req.body.user)) {
             const user: UserCreate = {
                 email: req.body.user,
                 nickname: 'Admin',

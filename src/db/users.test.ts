@@ -4,6 +4,7 @@ import format from 'pg-format'
 import UsersTable, { UserCreate, UserResult } from './users'
 import { testConfig, getTestSchema } from './testconfig.test'
 import DB from './db'
+import { cleanEmail } from '../string/string'
 
 const schema = getTestSchema()
 const db = new DB(testConfig, schema)
@@ -44,6 +45,13 @@ const deleteUsers = (config?: {email?: string, id?: number, client?: PoolClient}
     return db.query(format(`DELETE FROM %I.users;`, schema), client)
 }
 
+const convertToResult = (user: UserCreate): UserResult => {
+    const obj: any = {...user}
+    obj.email = cleanEmail(obj.email)
+    delete obj.password
+    return obj
+}
+
 describe('Users table', () => {
 
     describe('isEmpty', () => {
@@ -71,13 +79,14 @@ describe('Users table', () => {
 
     describe('findByEmail', () => {
 
-        it('returns info for the user that has the email', async () => {
+        const email = cleanEmail('chipmunk@example.com') || ''
+        const nickname ='Chipmunk'
+        const password = 'password' + parseInt((Math.random() * 1000000000).toString(), 10)
+        const admin = true
+
+        it('returns info for the user that has the normalized email', async () => {
             const client = await db.getClient()
             try {
-                const email = 'chipmunk@example.com'
-                const nickname ='Chipmunk'
-                const password = 'password' + parseInt((Math.random() * 1000000000).toString(), 10)
-                const admin = true
                 await deleteUsers({email, client})
                 await insertUser({email, nickname, password, admin, client})
                 const result = await usersTable.findByEmail(email, client)
@@ -97,8 +106,40 @@ describe('Users table', () => {
             }
         })
 
+        it('returns info for the user that has the equivalent email', async () => {
+            const email1 = 'ChipMunk@example.com'
+            const email2 = ' \t chipmunk@example.com \r\n  '
+            expect(cleanEmail(email1)).toEqual(cleanEmail(email2))
+            const client = await db.getClient()
+            try {
+                await deleteUsers({email: email1, client})
+                await insertUser({email: email1, nickname, password, admin, client})
+                const result = await usersTable.findByEmail(email2, client)
+                expect(result).not.toBeNull()
+                if (!result) return // make ts compiler happy
+                expect(result).toMatchObject({
+                    email: cleanEmail(email2),
+                    nickname,
+                    password,
+                    admin
+                })
+                expect(typeof result.user_id).toEqual('number')
+            } catch (error) {
+                throw error
+            } finally {
+                client.release()
+            }
+        })
+
         it ('returns null if no user has the email', async () => {
             const email = 'vole@example.com'
+            await deleteUsers({email})
+            const result = await usersTable.findByEmail(email)
+            expect(result).toBeNull()
+        })
+
+        it ('returns null if email is invalid', async () => {
+            const email = 'vole at example dot com'
             await deleteUsers({email})
             const result = await usersTable.findByEmail(email)
             expect(result).toBeNull()
@@ -117,8 +158,28 @@ describe('Users table', () => {
             expect(user).toBeNull()
         })
 
+        it('returns true and removes the user with an equivalent email if it exists', async () => {
+            const email1 = 'capy.bara@live.com'
+            const email2 = 'CapyBara+blog@live.com'
+            expect(cleanEmail(email1)).toEqual(cleanEmail(email2))
+            await usersTable.create({email: email1})
+            const deleteResult = await usersTable.deleteByEmail(email2)
+            expect(deleteResult).toEqual(true)
+            const user1 = await usersTable.findByEmail(email1)
+            expect(user1).toBeNull()
+            const user2 = await usersTable.findByEmail(email2)
+            expect(user2).toBeNull()
+        })
+
         it('returns false if no user has the email', async () => {
             const email = 'beaver@example.com'
+            await deleteUsers({email})
+            const result = await usersTable.deleteByEmail(email)
+            expect(result).toEqual(false)
+        })
+
+        it('returns false if email is invalid', async () => {
+            const email = 'beaver'
             await deleteUsers({email})
             const result = await usersTable.deleteByEmail(email)
             expect(result).toEqual(false)
@@ -209,7 +270,8 @@ describe('Users table', () => {
 
     describe('create', () => {
 
-        const email = 'shrew@example.com'
+        const email = 'shrew@googlemail.com'
+        const equivEmail = ' S.H.Rew+sartorial@gmail.com '
 
         const user1: UserCreate = {
             email,
@@ -225,13 +287,8 @@ describe('Users table', () => {
             admin: true
         }
 
-        const removePw = (user: UserCreate): object => {
-            const obj: any = {...user}
-            delete obj.password
-            return obj
-        }
-        const user1result = removePw(user1)
-        const user2result = removePw(user2)
+        const user1result = convertToResult(user1)
+        const user2result = convertToResult(user2)
 
         it('has error messages defined',
         () => {
@@ -244,6 +301,13 @@ describe('Users table', () => {
             const id = await usersTable.create(user2)
             const info = await usersTable.findById(id)
             expect(info).toMatchObject(user2result)
+        })
+
+        it('normalizes email before saving', async () => {
+            await deleteUsers()
+            const id = await usersTable.create({...user2, email: equivEmail})
+            const info = await usersTable.findById(id)
+            expect(info).toMatchObject({ ...user2result, email: cleanEmail(equivEmail) })
         })
 
         it('trims nickname before saving', async () => {
@@ -268,15 +332,14 @@ describe('Users table', () => {
             await deleteUsers()
             const user = {...user2}
             user.password = undefined
-            const userResult = {...user2} as any
-            userResult.password = null
             const id = await usersTable.create(user)
             const info = await usersTable.findById(id)
-            expect(info).toMatchObject(userResult as UserResult)
+            expect(info).toMatchObject(convertToResult(user))
         })
 
         it('rejects, throws, and does not affect existing user if email is already registered',
         async () => {
+            expect(user1.email).toEqual(user2.email)
             const client = await db.getClient()
             try {
                 await deleteUsers({client})
@@ -287,6 +350,28 @@ describe('Users table', () => {
                 await expect(createUserWithExistingUserEmail())
                     .rejects.toThrow(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE)
                 const info = await usersTable.findByEmail(user2.email, client)
+                expect(info).toMatchObject(user1result)
+            } catch (error) {
+                throw error
+            } finally {
+                client.release()
+            }
+        })
+
+        it('rejects, throws, and does not affect existing user if an equivalent email is already registered',
+        async () => {
+            const user3 = {...user2, email: equivEmail }
+            expect(cleanEmail(user3.email)).toEqual(cleanEmail(user1.email))
+            const client = await db.getClient()
+            try {
+                await deleteUsers({client})
+                await usersTable.create(user1, client)
+                const createUserWithExistingEquivalentEmail = () => {
+                    return usersTable.create(user3, client)
+                }
+                await expect(createUserWithExistingEquivalentEmail())
+                    .rejects.toThrow(usersTable.errors.CREATE_EMAIL_ALREADY_IN_USE)
+                const info = await usersTable.findByEmail(user3.email, client)
                 expect(info).toMatchObject(user1result)
             } catch (error) {
                 throw error

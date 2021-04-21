@@ -1,7 +1,7 @@
 import argon2 from 'argon2'
-import emailValidator from 'email-validator'
-import { PoolClient, QueryResult } from 'pg'
+import { PoolClient } from 'pg'
 import format from 'pg-format'
+import { cleanEmail } from '../string/string.js'
 import DB from './db.js'
 
 export interface UserCreate {
@@ -59,9 +59,13 @@ export default class UsersTable {
     }
     
     findByEmail(email: string, client?: PoolClient): Promise<UserResult | null> {
+        const em = cleanEmail(email)
+        if (!em) {
+            return Promise.resolve(null)
+        }
         return this.db.query({
             text: format('SELECT * FROM %I.users WHERE email = $1;', this.db.schema),
-            values: [email]
+            values: [em]
         }, client)
         .then((result) => {
             if (result.rowCount > 0) {
@@ -72,9 +76,13 @@ export default class UsersTable {
     }
 
     deleteByEmail(email: string, client?: PoolClient): Promise<boolean> {
+        const em = cleanEmail(email)
+        if (!em) {
+            return Promise.resolve(false)
+        }
         return this.db.query({
             text: format('DELETE FROM %I.users WHERE email = $1;', this.db.schema),
-            values: [email]
+            values: [em]
         }, client)
         .then((result) => {
             if (result.rowCount > 0) {
@@ -85,11 +93,11 @@ export default class UsersTable {
     }
 
     async create(user: UserCreate, client?: PoolClient): Promise<number> {
-        if (!emailValidator.validate(user.email)) {
+        let password
+        const email = cleanEmail(user.email)
+        if (!email) {
             return Promise.reject(new Error(this.errors.CREATE_EMAIL_INVALID))
         }
-        let password
-        const email = user.email.trim()
         const selectResult = await this.db.query({
             text: format(`SELECT CASE WHEN EXISTS (SELECT 1 FROM %I.users WHERE email = $1)
                 THEN 1 ELSE 0 END AS emailfound`, this.db.schema),

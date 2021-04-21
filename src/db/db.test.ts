@@ -151,17 +151,15 @@ describe('DB manager', () => {
 
         it('creates the users and pwtokens tables', async () => {
             // Drop the tables from the schema
-            const db1 = new DB(testConfig)
+            const db1 = new DB(testConfig, schema)
             await db1.init()
             await dropTable(db1, schema, 'users')
             await dropTable(db1, schema, 'pwtokens')
-            db1.end()
             // Init should re-create the tables in the schema
-            const db2 = new DB(testConfig, schema)
-            await db2.init()
-            expect(await hasTable(db2, schema, 'users')).toEqual(true)
-            expect(await hasTable(db2, schema, 'pwtokens')).toEqual(true)
-            db2.end()
+            await db1.init()
+            expect(await hasTable(db1, schema, 'users')).toEqual(true)
+            expect(await hasTable(db1, schema, 'pwtokens')).toEqual(true)
+            db1.end()
         })
 
     })

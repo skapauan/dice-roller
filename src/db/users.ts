@@ -38,17 +38,10 @@ export default class UsersTable {
             this.db.schema
         ), client)
         .then((result) => {
-            if (result.rows.length === 1) {
-                if (result.rows[0].isempty === 0) {
-                    return false
-                }
-                if (result.rows[0].isempty === 1) {
-                    return true
-                }
-                throw new Error('Unexpected format in result')
-            } else {
-                throw new Error('Unexpected number of rows in result')
+            if (result.rows[0] && result.rows[0].isempty === 1) {
+                return true
             }
+            return false
         })
     }
     

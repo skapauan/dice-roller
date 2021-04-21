@@ -107,7 +107,25 @@ describe('Password service', () => {
             )
         })
 
-        it('does not create initial admin user if token does not exist', () => {
+        it('does not create initial admin user if request is missing the token', () => {
+            return pwtokensTable.create(-999)
+            .then((token) => request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: initialAdmin, newPassword })
+                .expect(403)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailBody(res)
+                    return usersTable.findByEmail(initialAdmin)
+                })
+                .then((user) => {
+                    expect(user).toBeNull()
+                })
+            )
+        })
+
+        it('does not create initial admin user if token is not in DB', () => {
             const token = 'oh yes a totally legit token right here'
             return pwtokensTable.deleteByToken(token)
             .then(() => request(app)
@@ -153,6 +171,24 @@ describe('Password service', () => {
             )
         })
 
+        it('does not create initial admin user if request is missing the user', () => {
+            return pwtokensTable.create(-999)
+            .then((token) => request(app)
+                .post('/')
+                .type('application/json')
+                .send({ token, newPassword })
+                .expect(403)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailBody(res)
+                    return usersTable.findByEmail(initialAdmin)
+                })
+                .then((user) => {
+                    expect(user).toBeNull()
+                })
+            )
+        })
+
         it('does not create initial admin user if user is not INITIAL_ADMIN', () => {
             const notAdminUser = 'NotAdmin@example.com'
             return pwtokensTable.create(-999)
@@ -178,7 +214,30 @@ describe('Password service', () => {
             )
         })
 
-        it('does not create initial user if INITIAL_ADMIN is not a valid email', () => {
+        it('does not create initial admin user if INITIAL_ADMIN is not set', () => {
+            const email = 'some.email@example.com'
+            const env2 = {}
+            const app2 = express()
+            app2.use(express.json())
+            app2.use('/', getRouter(db, env2))
+            return pwtokensTable.create(-999)
+            .then((token) => request(app2)
+                .post('/')
+                .type('application/json')
+                .send({ token, user: email, newPassword })
+                .expect(403)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailBody(res)
+                    return usersTable.findByEmail(email)
+                })
+                .then((user) => {
+                    expect(user).toBeNull()
+                })
+            )
+        })
+
+        it('does not create initial admin user if INITIAL_ADMIN is not a valid email', () => {
             const env2 = { INITIAL_ADMIN: 'a poor choice of email' }
             const app2 = express()
             app2.use(express.json())

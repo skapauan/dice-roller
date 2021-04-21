@@ -81,11 +81,36 @@ describe('DB manager', () => {
     describe('query', () => {
         const db1 = new DB(testConfig, schema)
 
-        beforeAll(async () => await db1.init())
-        afterAll(() => db1.end())
+        it('successfully performs a query if DB is init', async () => {
+            await db1.init()
+            await db1.query('SELECT NOW();')
+        })
 
-        it('connects to DB successfully', () => {
-            return db1.query('SELECT NOW();')
+        it('rejects if DB is not init', () => {
+            db1.end()
+            expect(db1.query('SELECT NOW();')).rejects.toThrowError('Must init DB before using')
+        })
+
+    })
+
+    describe('getClient', () => {
+        const db1 = new DB(testConfig, schema)
+
+        it('rejects if DB is not init', () => {
+            expect(db1.getClient()).rejects.toThrowError('Must init DB before using')
+        })
+
+        it('returns a PoolClient if DB is init', async () => {
+            await db1.init()
+            const client = await db1.getClient()
+            try {
+                await db1.query('SELECT NOW();', client)
+            } catch(e) {
+                throw e
+            } finally {
+                client.release()
+                db1.end()
+            }
         })
 
     })

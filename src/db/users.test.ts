@@ -2,7 +2,7 @@ import argon2 from 'argon2'
 import { PoolClient } from 'pg'
 import format from 'pg-format'
 import UsersTable, { UserCreate, UserResult } from './users'
-import { testConfig, getTestSchema } from './testconfig'
+import { testConfig, getTestSchema } from './testconfig.test'
 import DB from './db'
 
 const schema = getTestSchema()

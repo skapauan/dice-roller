@@ -1,7 +1,7 @@
 import { PoolClient } from 'pg'
 import format from 'pg-format'
 import PwTokensTable from './pwtokens'
-import { testConfig, getTestSchema } from './testconfig'
+import { testConfig, getTestSchema } from './testconfig.test'
 import DB from './db'
 
 const schema = getTestSchema()

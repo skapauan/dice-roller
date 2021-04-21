@@ -41,9 +41,6 @@ const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
         } else if (await usersTable.isEmpty()) {
             // No users in table
             if (!env.INITIAL_ADMIN || !env.INITIAL_PASSWORD) {
-                if (env.NODE_ENV !== 'test') {
-                    console.log('Please set INITIAL_ADMIN and INITIAL_PASSWORD to non-empty values.')
-                }
                 res.statusCode = 401
                 res.json({ success: false } as LoginResponseBody)
             } else if (body.user === env.INITIAL_ADMIN && body.password === env.INITIAL_PASSWORD) {

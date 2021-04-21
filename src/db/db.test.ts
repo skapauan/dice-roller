@@ -56,6 +56,28 @@ describe('DB manager', () => {
 
     })
 
+    describe('end', () => {
+
+        it('returns false before init', () => {
+            const db1 = new DB(testConfig, schema)
+            expect(db1.end()).toEqual(false)
+        })
+
+        it('returns true after init', async () => {
+            const db1 = new DB(testConfig, schema)
+            await db1.init()
+            expect(db1.end()).toEqual(true)
+        })
+
+        it('returns false after init and end', async () => {
+            const db1 = new DB(testConfig, schema)
+            await db1.init()
+            db1.end()
+            expect(db1.end()).toEqual(false)
+        })
+
+    })
+
     describe('query', () => {
         const db1 = new DB(testConfig, schema)
 

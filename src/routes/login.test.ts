@@ -138,8 +138,7 @@ describe('Login service', () => {
         () => {
             const env2 = {
                 INITIAL_ADMIN: 'laurel.and.hardy',
-                INITIAL_PASSWORD: 'BestBuds33',
-                NODE_ENV: 'test'
+                INITIAL_PASSWORD: 'BestBuds33'
             }
             const app2 = express()
             app2.use(express.json())
@@ -159,8 +158,7 @@ describe('Login service', () => {
         () => {
             const env2 = {
                 INITIAL_ADMIN: 'laurel.and.hardy@example.com',
-                INITIAL_PASSWORD: '',
-                NODE_ENV: 'test'
+                INITIAL_PASSWORD: ''
             }
             const app2 = express()
             app2.use(express.json())

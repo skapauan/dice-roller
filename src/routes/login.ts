@@ -1,6 +1,6 @@
 import express, { Request } from 'express'
 import bodyParser from 'body-parser'
-import { cleanEmail } from '../string/string'
+import { cleanEmail } from '../string/string.js'
 import DB from '../db/db.js'
 import UsersTable from '../db/users.js'
 import PwTokensTable from '../db/pwtokens.js'
@@ -30,7 +30,7 @@ const reqToLoginRequestBody = (req: Request): LoginRequestBody | null => {
 const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
     const usersTable = new UsersTable(db)
     const pwtokensTable = new PwTokensTable(db)
-    
+
     const router = express.Router()
     router.use(bodyParser.json())
     router.route('/')

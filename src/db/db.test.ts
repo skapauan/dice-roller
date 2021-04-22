@@ -1,7 +1,7 @@
 
 import format from 'pg-format'
 import DB from './db'
-import { testConfig, getTestSchema } from './testconfig.test'
+import { testConfig, getTestSchema } from '../test/config/db.test'
 
 const schema = getTestSchema()
 

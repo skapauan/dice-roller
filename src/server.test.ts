@@ -2,7 +2,7 @@ import request from 'supertest'
 import path from 'path'
 import getServer from './server'
 import DB from './db/db'
-import { testConfig, getTestSchema } from './db/testconfig.test'
+import { testConfig, getTestSchema } from './test/config/db.test'
 import PwtokensTable from './db/pwtokens'
 
 const schema = getTestSchema()

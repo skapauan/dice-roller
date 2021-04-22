@@ -113,7 +113,7 @@ describe('Password service', () => {
                 .post('/')
                 .type('application/json')
                 .send({ user: initialAdmin, newPassword })
-                .expect(403)
+                .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
                     expectFailBody(res)
@@ -177,7 +177,7 @@ describe('Password service', () => {
                 .post('/')
                 .type('application/json')
                 .send({ token, newPassword })
-                .expect(403)
+                .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
                     expectFailBody(res)
@@ -247,7 +247,7 @@ describe('Password service', () => {
                 .post('/')
                 .type('application/json')
                 .send({ token, user: env2.INITIAL_ADMIN, newPassword })
-                .expect(403)
+                .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
                     expectFailBody(res)

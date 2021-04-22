@@ -7,7 +7,7 @@ import PwtokensTable from './db/pwtokens'
 
 const schema = getTestSchema()
 const db = new DB(testConfig, schema)
-const server = getServer(db, path.join(__dirname, '..', 'public'), process.env)
+const server = getServer(db, path.join(__dirname, '..', 'public'), {})
 const pwtokensTable = new PwtokensTable(db)
 
 beforeAll(async () => {

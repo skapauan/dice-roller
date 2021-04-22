@@ -2,6 +2,7 @@ import request from 'supertest'
 import express from 'express'
 import format from 'pg-format'
 import getRouter from './login'
+import { cleanEmail } from '../string/string'
 import { testConfig, getTestSchema } from '../db/testconfig.test'
 import DB from '../db/db'
 import PwTokensTable from '../db/pwtokens'
@@ -45,6 +46,30 @@ describe('Login service', () => {
                 .post('/')
                 .type('application/json')
                 .send({ user: env.INITIAL_ADMIN, password: env.INITIAL_PASSWORD })
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expect(res.body).toHaveProperty('success', true)
+                    expect(res.body).toHaveProperty('forceReset', true)
+                    expect(res.body).toHaveProperty('resetToken')
+                    expect(typeof res.body.resetToken).toEqual('string')
+                    expect(res.body.resetToken.length).toBeGreaterThan(0)
+                    // Check that token exists in table
+                    return pwtokensTable.findByToken(res.body.resetToken)
+                })
+                .then((tokenData) => {
+                    expect(tokenData).not.toBeNull()
+                })
+        })
+
+        it('should similarly accept login if email is equivalent to INITIAL_ADMIN',
+        () => {
+            const equivEmail = 'Mister.Cool@example.com \r\n'
+            expect(cleanEmail(equivEmail)).toEqual(env.INITIAL_ADMIN)
+            return request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: equivEmail, password: env.INITIAL_PASSWORD })
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .then((res) => {
@@ -109,10 +134,10 @@ describe('Login service', () => {
             )
         })
     
-        it('should reject login if INITIAL_ADMIN is empty string',
+        it('should reject login if INITIAL_ADMIN is invalid email',
         () => {
             const env2 = {
-                INITIAL_ADMIN: '',
+                INITIAL_ADMIN: 'laurel.and.hardy',
                 INITIAL_PASSWORD: 'BestBuds33',
                 NODE_ENV: 'test'
             }
@@ -167,11 +192,27 @@ describe('Login service', () => {
             await usersTable.create(eve)
         })
 
-        it('should accept login matching the user\'s info', () => {
+        it('should accept login using user\'s email and password', () => {
             return request(app)
                 .post('/')
                 .type('application/json')
                 .send({ user: eve.email, password: eve.password })
+                .expect(200)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expect(res.body).toHaveProperty('success', true)
+                    expect(res.body).not.toHaveProperty('forceReset')
+                    expect(res.body).not.toHaveProperty('resetToken')
+                })
+        })
+
+        it('should accept login with email equivalent to user and correct password', () => {
+            const equivEmail = ' EVE@EXAMPLE.COM '
+            expect(cleanEmail(equivEmail)).toEqual(eve.email)
+            return request(app)
+                .post('/')
+                .type('application/json')
+                .send({ user: equivEmail, password: eve.password })
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .then((res) => {

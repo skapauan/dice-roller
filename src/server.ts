@@ -11,7 +11,6 @@ export default (db: DB, staticFilePath: string, env: NodeJS.ProcessEnv) => {
     app.use(passport.initialize())
     app.use(passport.session())
     app.use(express.static(staticFilePath))
-    app.use(express.json())
     app.use('/login', loginRouter(db, envCopy))
     app.use('/password', passwordRouter(db, envCopy))
     return http.createServer(app)

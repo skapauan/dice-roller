@@ -15,7 +15,6 @@ const usersTable = new UsersTable(db)
 const env = { INITIAL_ADMIN: 'mister.cool@example.com', INITIAL_PASSWORD: 'a super witty password'}
 
 const app = express()
-app.use(express.json())
 app.use('/', getRouter(db, env))
 
 beforeAll(async () => {
@@ -141,7 +140,6 @@ describe('Login service', () => {
                 INITIAL_PASSWORD: 'BestBuds33'
             }
             const app2 = express()
-            app2.use(express.json())
             app2.use('/', getRouter(db, env2))
             return request(app2)
                 .post('/')
@@ -161,7 +159,6 @@ describe('Login service', () => {
                 INITIAL_PASSWORD: ''
             }
             const app2 = express()
-            app2.use(express.json())
             app2.use('/', getRouter(db, env2))
             return request(app2)
                 .post('/')

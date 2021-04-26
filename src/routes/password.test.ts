@@ -17,7 +17,6 @@ const env = { INITIAL_ADMIN: initialAdmin }
 const newPassword = 'my new password'
 
 const app = express()
-app.use(express.json())
 app.use('/', getRouter(db, env))
 
 beforeAll(async () => {
@@ -77,7 +76,6 @@ describe('Password service', () => {
             expect(cleanEmail(equivAdmin)).toEqual(cleanAdmin)
 
             const app2 = express()
-            app2.use(express.json())
             app2.use('/', getRouter(db, env2))
 
             return pwtokensTable.create(-999)
@@ -218,7 +216,6 @@ describe('Password service', () => {
             const email = 'some.email@example.com'
             const env2 = {}
             const app2 = express()
-            app2.use(express.json())
             app2.use('/', getRouter(db, env2))
             return pwtokensTable.create(-999)
             .then((token) => request(app2)
@@ -240,7 +237,6 @@ describe('Password service', () => {
         it('does not create initial admin user if INITIAL_ADMIN is not a valid email', () => {
             const env2 = { INITIAL_ADMIN: 'a poor choice of email' }
             const app2 = express()
-            app2.use(express.json())
             app2.use('/', getRouter(db, env2))
             return pwtokensTable.create(-999)
             .then((token) => request(app2)

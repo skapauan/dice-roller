@@ -10,12 +10,16 @@ export const jsonCheck = (err: any, req: Request, res: Response, next: NextFunct
         next(err)
     } else {
         let error: string = ''
-        if (typeof err.type === 'string') {
-            error = jsonErrors[err.type] || jsonErrors.default
+        if (typeof err.type === 'string' && jsonErrors[err.type]) {
+            error = jsonErrors[err.type]
         } else {
             error = jsonErrors.default
         }
-        res.statusCode = err.statusCode
+        if (typeof err.statusCode === 'number' && err.statusCode >= 100 && err.statusCode <= 999) {
+            res.statusCode = err.statusCode
+        } else {
+            res.statusCode = 500
+        }
         res.json({ error })
     }
 }

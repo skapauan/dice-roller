@@ -1,9 +1,20 @@
+import contentType from 'content-type'
 import { Request, Response, NextFunction } from 'express'
 import { bodyParserErrors } from './body-parser-errors.js'
 
 export const jsonErrors = {...bodyParserErrors}
 jsonErrors['entity.parse.failed'] = 'Request did not have valid JSON syntax'
+jsonErrors['notJson'] = 'Request is required to be in JSON format',
 jsonErrors['default'] = 'Could not parse JSON body'
+
+export const jsonPreCheck = (req: Request, res: Response, next: NextFunction) => {
+    if (contentType.parse(req).type === 'application/json') {
+        next()
+    } else {
+        res.statusCode = 400
+        res.json({ error: jsonErrors['notJson'] })
+    }
+}
 
 export const jsonCheck = (err: any, req: Request, res: Response, next: NextFunction) => {
     if (res.headersSent) {

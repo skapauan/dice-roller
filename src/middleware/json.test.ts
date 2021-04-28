@@ -1,9 +1,61 @@
 import request from 'supertest'
 import bodyParser from 'body-parser'
 import express, { Request, Response, NextFunction } from 'express'
-import { jsonCheck, jsonErrors } from './json'
+import { jsonPreCheck, jsonCheck, jsonErrors } from './json'
 
-describe('Middleware to check that json was parsed', () => {
+describe('Middleware to ensure that content type is json', () => {
+
+    it('responds with 400 and related error message if content type is not json', () => {
+        const router = express.Router()
+        router.use(jsonPreCheck)
+        router.use(bodyParser.json())
+        router.route('/')
+        .post((req, res, next) => {
+            res.statusCode = 200
+            res.json({ success: true })
+        })
+        
+        const app = express()
+        app.use('/', router)
+
+        return request(app)
+            .post('/')
+            .type('text/html')
+            .send('<p>{"doesThisCountAsJson":"oh yeah totally"}</p>')
+            .expect(400)
+            .expect('Content-Type', /json/)
+            .then((res) => {
+                expect(res.body.error).toEqual(jsonErrors['notJson'])
+            })
+    })
+
+    it('passes to next if content type is json', () => {
+        const router = express.Router()
+        router.use(jsonPreCheck)
+        router.use(bodyParser.json())
+        router.route('/')
+        .post((req, res, next) => {
+            res.statusCode = 200
+            res.json({ success: true })
+        })
+        
+        const app = express()
+        app.use('/', router)
+
+        return request(app)
+            .post('/')
+            .type('application/json')
+            .send({valid: true})
+            .expect(200)
+            .expect('Content-Type', /json/)
+            .then((res) => {
+                expect(res.body.success).toEqual(true)
+            })
+    })
+
+})
+
+describe('Middleware to ensure that json was parsed', () => {
 
     it('has a set of unique error messages', () => {
         Object.values(jsonErrors).forEach((e, i, errors) => {

@@ -12,7 +12,7 @@ export const jsonPreCheck = (req: Request, res: Response, next: NextFunction) =>
         next()
     } else {
         res.statusCode = 400
-        res.json({ error: jsonErrors['notJson'] })
+        res.json({ error: jsonErrors['notJson'], success: false })
     }
 }
 
@@ -31,6 +31,6 @@ export const jsonCheck = (err: any, req: Request, res: Response, next: NextFunct
         } else {
             res.statusCode = 500
         }
-        res.json({ error })
+        res.json({ error, success: false })
     }
 }

@@ -26,6 +26,7 @@ describe('Middleware to ensure that content type is json', () => {
             .expect('Content-Type', /json/)
             .then((res) => {
                 expect(res.body.error).toEqual(jsonErrors['notJson'])
+                expect(res.body.success).toEqual(false)
             })
     })
 
@@ -49,6 +50,7 @@ describe('Middleware to ensure that content type is json', () => {
             .expect(200)
             .expect('Content-Type', /json/)
             .then((res) => {
+                expect(res.body).not.toHaveProperty('error')
                 expect(res.body.success).toEqual(true)
             })
     })
@@ -86,6 +88,7 @@ describe('Middleware to ensure that json was parsed', () => {
             .expect('Content-Type', /json/)
             .then((res) => {
                 expect(res.body.error).toEqual(jsonErrors['entity.parse.failed'])
+                expect(res.body.success).toEqual(false)
             })
     })
 
@@ -116,6 +119,7 @@ describe('Middleware to ensure that json was parsed', () => {
             .expect('Content-Type', /json/)
             .then((res) => {
                 expect(res.body.error).toEqual(jsonErrors['default'])
+                expect(res.body.success).toEqual(false)
             })
     })
 
@@ -144,6 +148,7 @@ describe('Middleware to ensure that json was parsed', () => {
             .expect('Content-Type', /json/)
             .then((res) => {
                 expect(res.body.error).toEqual(jsonErrors['default'])
+                expect(res.body.success).toEqual(false)
             })
     })
 
@@ -154,7 +159,7 @@ describe('Middleware to ensure that json was parsed', () => {
         const router = express.Router()
         router.use((req, res, next) => {
             res.statusCode = 418
-            res.json({ success: false })
+            res.json({ succeeded: false })
             next(new Error(errorSent))
         })
         router.use(jsonCheck)
@@ -178,7 +183,9 @@ describe('Middleware to ensure that json was parsed', () => {
             .expect(418)
             .expect('Content-Type', /json/)
             .then((res) => {
-                expect(res.body.success).toEqual(false)
+                expect(res.body).not.toHaveProperty('success')
+                expect(res.body).not.toHaveProperty('error')
+                expect(res.body.succeeded).toEqual(false)
                 expect(errorReceived).toEqual(errorSent)
             })
     })

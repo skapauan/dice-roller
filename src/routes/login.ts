@@ -1,6 +1,7 @@
-import express, { Request } from 'express'
+import express, { Request, Response, NextFunction } from 'express'
 import bodyParser from 'body-parser'
 import { cleanEmail } from '../string/string.js'
+import { jsonPreCheck, jsonCheck } from '../middleware/json.js'
 import DB from '../db/db.js'
 import UsersTable from '../db/users.js'
 import PwTokensTable from '../db/pwtokens.js'
@@ -12,6 +13,7 @@ export interface LoginRequestBody {
 
 export interface LoginResponseBody {
     success: boolean;
+    error?: string;
     forceReset?: boolean;
     resetToken?: string;
 }
@@ -32,9 +34,9 @@ const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
     const pwtokensTable = new PwTokensTable(db)
 
     const router = express.Router()
-    router.use(bodyParser.json())
     router.route('/')
-    .post(async (req, res, next) => {
+    .post(jsonPreCheck, bodyParser.json(), jsonCheck,
+            async (req: Request, res: Response, next: NextFunction) => {
         res.setHeader('Content-Type', 'application/json')
         const body = reqToLoginRequestBody(req)
         if (!body) {

@@ -1,9 +1,10 @@
-import express from 'express'
+import express, { Request, Response, NextFunction } from 'express'
 import bodyParser from 'body-parser'
+import { cleanEmail } from '../string/string.js'
+import { jsonPreCheck, jsonCheck } from '../middleware/json.js'
 import DB from '../db/db.js'
 import UsersTable, { UserCreate } from '../db/users.js'
 import PwTokensTable from '../db/pwtokens.js'
-import { cleanEmail, stringOrNothing } from '../string/string.js'
 
 export interface PasswordRequestBody {
     token: string;
@@ -13,6 +14,7 @@ export interface PasswordRequestBody {
 
 export interface PasswordResponseBody {
     success: boolean;
+    error?: string;
 }
 
 const reqToRequestBody = (req: any): PasswordRequestBody | null => {
@@ -35,9 +37,9 @@ export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
     const usersTable = new UsersTable(db)
     const pwtokensTable = new PwTokensTable(db)
     const router = express.Router()
-    router.use(bodyParser.json())
     router.route('/')
-    .post(async (req, res, next) => {
+    .post(jsonPreCheck, bodyParser.json(), jsonCheck,
+            async (req: Request, res: Response, next: NextFunction) => {
         const body = reqToRequestBody(req)
         if (!body) {
             res.statusCode = 400

@@ -2,6 +2,7 @@ import request from 'supertest'
 import express from 'express'
 import format from 'pg-format'
 import getRouter from './password'
+import { jsonErrors } from '../middleware/json'
 import { testConfig, getTestSchema } from '../test/config/db.test'
 import DB from '../db/db'
 import PwTokensTable from '../db/pwtokens'
@@ -253,6 +254,36 @@ describe('Password service', () => {
                     expect(user).toBeNull()
                 })
             )
+        })
+
+    })
+
+    describe('uses middleware to enforce valid json requests', () => {
+
+        it('responds with 400 and related error message if content type is not json', () => {
+            return request(app)
+                .post('/')
+                .type('text/plain')
+                .send('{"grapes":12}')
+                .expect(400)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expect(res.body.success).toEqual(false)
+                    expect(res.body.error).toEqual(jsonErrors['notJson'])
+                })
+        })
+
+        it('responds with 400 and related error message if json is invalid', () => {
+            return request(app)
+                .post('/')
+                .type('application/json')
+                .send('{"invalid"}')
+                .expect(400)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expect(res.body.success).toEqual(false)
+                    expect(res.body.error).toEqual(jsonErrors['entity.parse.failed'])
+                })
         })
 
     })

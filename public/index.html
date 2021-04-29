@@ -5,23 +5,59 @@
     </head>
     <body>
         <h1>Dice Roller</h1>
+        <h2>Login</h2>
         <form>
-            <label>User <input type="text" name="user" id="user"></label>
+            <label>User <input type="text" name="user1" id="user1"></label>
             <label>Password <input type="password" name="password" id="password"></label>
-            <input type="submit" value="Login" onclick="SubmitForm(event)">
+            <input type="submit" value="Login" onclick="SubmitForm1(event)">
         </form>
-        <p id="outcome"></p>
+        <p id="outcome1"></p>
+        <h2>Reset password</h2>
+        <form>
+            <label>Token <input type="text" name="token" id="token"></label>
+            <label>User <input type="text" name="user2" id="user2"></label>
+            <label>New Password <input type="password" name="newPassword" id="newPassword"></label>
+            <input type="submit" value="Reset Password" onclick="SubmitForm2(event)">
+        </form>
+        <p id="outcome2"></p>
     </body>
     <script type="text/javascript">
-        function SubmitForm(event) {
+        function SubmitForm1(event) {
             event.preventDefault()
             fetch('login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({user: user.value, password: password.value})
+                body: JSON.stringify({user: user1.value, password: password.value})
             })
             .then(function (res) { return res.json() })
-            .then(function (data) { document.getElementById('outcome').innerText = data.success })
+            .then(function (data) {
+                let text = data.success ? 'Succeeded' : 'Failed'
+                if (data.error) {
+                    text += ' with error: ' + data.error
+                }
+                if (data.forceReset) {
+                    text += ' and force password reset (use form below)'
+                    token.value = data.resetToken
+                    user2.value = user1.value
+                }
+                document.getElementById('outcome1').innerText = text
+            })
+        }
+        function SubmitForm2(event) {
+            event.preventDefault()
+            fetch('password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({token: token.value, user: user2.value, newPassword: newPassword.value})
+            })
+            .then(function (res) { return res.json() })
+            .then(function (data) {
+                let text = data.success ? 'Succeeded' : 'Failed'
+                if (data.error) {
+                    text += ' with error: ' + data.error
+                }
+                document.getElementById('outcome2').innerText = text
+            })
         }
     </script>
 </html>

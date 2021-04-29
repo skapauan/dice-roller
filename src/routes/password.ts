@@ -19,7 +19,8 @@ export interface PasswordResponseBody {
 
 export const PasswordErrors: {[key: string]: string} = {
     INVALID_FORMAT: 'Request data had invalid format',
-    INCORRECT_TOKEN: 'Token or user was incorrect'
+    INCORRECT_TOKEN: 'Token or user was incorrect',
+    EXPIRED_TOKEN: 'Token was expired'
 }
 
 const reqToRequestBody = (req: any): PasswordRequestBody | null => {
@@ -53,7 +54,12 @@ export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
         }
         if (body.user === cleanEmail(env.INITIAL_ADMIN)) {
             const token = await pwtokensTable.findByToken(body.token)
-            if (token && !token.expired) {
+            if (token) {
+                if (token.expired) {
+                    res.statusCode = 403
+                    res.json({ success: false, error: PasswordErrors.EXPIRED_TOKEN } as PasswordResponseBody)
+                    return
+                }
                 const user: UserCreate = {
                     email: body.user,
                     nickname: 'Admin',

@@ -160,7 +160,7 @@ describe('Password service', () => {
                 .expect(403)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailBody(res, PasswordErrors.INCORRECT_TOKEN)
+                    expectFailBody(res, PasswordErrors.EXPIRED_TOKEN)
                     return usersTable.findByEmail(initialAdmin)
                 })
                 .then((user) => {

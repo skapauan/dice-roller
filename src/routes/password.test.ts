@@ -1,7 +1,7 @@
 import request from 'supertest'
 import express from 'express'
 import format from 'pg-format'
-import getRouter from './password'
+import getRouter, { PasswordErrors } from './password'
 import { jsonErrors } from '../middleware/json'
 import { testConfig, getTestSchema } from '../test/config/db.test'
 import DB from '../db/db'
@@ -30,10 +30,9 @@ afterAll(() => {
 
 describe('Password service', () => {
 
-    const expectFailBody = (res: {body: object}): void => {
+    const expectFailBody = (res: {body: object}, err: string): void => {
         expect(res.body).toHaveProperty('success', false)
-        expect(res.body).not.toHaveProperty('forceReset')
-        expect(res.body).not.toHaveProperty('resetToken')
+        expect(res.body).toHaveProperty('error', err)
     }
 
     describe('before any users created', () => {
@@ -115,7 +114,7 @@ describe('Password service', () => {
                 .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailBody(res)
+                    expectFailBody(res, PasswordErrors.INVALID_FORMAT)
                     return usersTable.findByEmail(initialAdmin)
                 })
                 .then((user) => {
@@ -134,7 +133,7 @@ describe('Password service', () => {
                 .expect(403)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailBody(res)
+                    expectFailBody(res, PasswordErrors.INCORRECT_TOKEN)
                     return usersTable.findByEmail(initialAdmin)
                 })
                 .then((user) => {
@@ -161,7 +160,7 @@ describe('Password service', () => {
                 .expect(403)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailBody(res)
+                    expectFailBody(res, PasswordErrors.INCORRECT_TOKEN)
                     return usersTable.findByEmail(initialAdmin)
                 })
                 .then((user) => {
@@ -179,7 +178,7 @@ describe('Password service', () => {
                 .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailBody(res)
+                    expectFailBody(res, PasswordErrors.INVALID_FORMAT)
                     return usersTable.findByEmail(initialAdmin)
                 })
                 .then((user) => {
@@ -198,7 +197,7 @@ describe('Password service', () => {
                 .expect(403)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailBody(res)
+                    expectFailBody(res, PasswordErrors.INCORRECT_TOKEN)
                     return usersTable.findByEmail(initialAdmin)
                 })
                 .then((user) => {
@@ -226,7 +225,7 @@ describe('Password service', () => {
                 .expect(403)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailBody(res)
+                    expectFailBody(res, PasswordErrors.INCORRECT_TOKEN)
                     return usersTable.findByEmail(email)
                 })
                 .then((user) => {
@@ -247,7 +246,7 @@ describe('Password service', () => {
                 .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailBody(res)
+                    expectFailBody(res, PasswordErrors.INVALID_FORMAT)
                     return usersTable.findByEmail(env2.INITIAL_ADMIN)
                 })
                 .then((user) => {

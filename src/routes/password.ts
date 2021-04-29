@@ -17,6 +17,11 @@ export interface PasswordResponseBody {
     error?: string;
 }
 
+export const PasswordErrors: {[key: string]: string} = {
+    INVALID_FORMAT: 'Request data had invalid format',
+    INCORRECT_TOKEN: 'Token or user was incorrect'
+}
+
 const reqToRequestBody = (req: any): PasswordRequestBody | null => {
     const body = req.body as any
     if (!body || typeof body.newPassword !== 'string' || typeof body.token !== 'string') {
@@ -43,7 +48,7 @@ export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
         const body = reqToRequestBody(req)
         if (!body) {
             res.statusCode = 400
-            res.json({ success: false } as PasswordResponseBody)
+            res.json({ success: false, error: PasswordErrors.INVALID_FORMAT } as PasswordResponseBody)
             return
         }
         if (body.user === cleanEmail(env.INITIAL_ADMIN)) {
@@ -62,7 +67,7 @@ export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
             }
         }
         res.statusCode = 403
-        res.json({ success: false } as PasswordResponseBody)
+        res.json({ success: false, error: PasswordErrors.INCORRECT_TOKEN } as PasswordResponseBody)
         return
     })
     return router

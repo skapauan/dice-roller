@@ -18,6 +18,11 @@ export interface LoginResponseBody {
     resetToken?: string;
 }
 
+export const LoginErrors: {[key: string]: string} = {
+    INVALID_FORMAT: 'Request data had invalid format',
+    INCORRECT_LOGIN: 'Login was incorrect'
+}
+
 const reqToLoginRequestBody = (req: Request): LoginRequestBody | null => {
     const body = req.body as any
     if (!body || typeof body.user !== 'string' || typeof body.password !== 'string') {
@@ -42,7 +47,7 @@ const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
         if (!body) {
             // Invalid request
             res.statusCode = 400
-            res.json({ success: false } as LoginResponseBody)
+            res.json({ success: false, error: LoginErrors.INVALID_FORMAT } as LoginResponseBody)
             return
         } else if (await usersTable.isEmpty()) {
             // No users in table, so check against INITIAL_ADMIN
@@ -68,7 +73,7 @@ const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
         }
         // Unauthorized
         res.statusCode = 401
-        res.json({ success: false } as LoginResponseBody)
+        res.json({ success: false, error: LoginErrors.INCORRECT_LOGIN } as LoginResponseBody)
         return
     })
 

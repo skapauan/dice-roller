@@ -1,7 +1,7 @@
 import request from 'supertest'
 import express from 'express'
 import format from 'pg-format'
-import getRouter from './login'
+import getRouter, { LoginResponseBody, LoginErrors } from './login'
 import { cleanEmail } from '../string/string'
 import { jsonErrors } from '../middleware/json'
 import { testConfig, getTestSchema } from '../test/config/db.test'
@@ -28,10 +28,26 @@ afterAll(() => {
 
 describe('Login service', () => {
 
-    const expectFailedLoginBody = (res: {body: object}): void => {
+    const expectFailedLoginBody = (res: {body: LoginResponseBody}, err: string): void => {
         expect(res.body).toHaveProperty('success', false)
+        expect(res.body).toHaveProperty('error', err)
         expect(res.body).not.toHaveProperty('forceReset')
         expect(res.body).not.toHaveProperty('resetToken')
+    }
+
+    const expectSuccessLoginBody = (res: {body: LoginResponseBody}, forceReset?: boolean): void => {
+        expect(res.body).toHaveProperty('success', true)
+        expect(res.body).not.toHaveProperty('error')
+        if (forceReset) {
+            expect(res.body).toHaveProperty('forceReset', true)
+            expect(res.body).toHaveProperty('resetToken')
+            if (!res.body.resetToken) return // make ts compiler happy
+            expect(typeof res.body.resetToken).toEqual('string')
+            expect(res.body.resetToken.length).toBeGreaterThan(0)
+        } else {
+            expect(res.body).not.toHaveProperty('forceReset')
+            expect(res.body).not.toHaveProperty('resetToken')
+        }
     }
 
     describe('before any users created', () => {
@@ -49,11 +65,8 @@ describe('Login service', () => {
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expect(res.body).toHaveProperty('success', true)
-                    expect(res.body).toHaveProperty('forceReset', true)
-                    expect(res.body).toHaveProperty('resetToken')
-                    expect(typeof res.body.resetToken).toEqual('string')
-                    expect(res.body.resetToken.length).toBeGreaterThan(0)
+                    // Response indicates successful login and force password reset
+                    expectSuccessLoginBody(res, true)
                     // Check that token exists in table
                     return pwtokensTable.findByToken(res.body.resetToken)
                 })
@@ -73,11 +86,8 @@ describe('Login service', () => {
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expect(res.body).toHaveProperty('success', true)
-                    expect(res.body).toHaveProperty('forceReset', true)
-                    expect(res.body).toHaveProperty('resetToken')
-                    expect(typeof res.body.resetToken).toEqual('string')
-                    expect(res.body.resetToken.length).toBeGreaterThan(0)
+                    // Response indicates successful login and force password reset
+                    expectSuccessLoginBody(res, true)
                     // Check that token exists in table
                     return pwtokensTable.findByToken(res.body.resetToken)
                 })
@@ -95,7 +105,7 @@ describe('Login service', () => {
                 .expect(401)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INCORRECT_LOGIN)
                 })
         })
     
@@ -108,11 +118,11 @@ describe('Login service', () => {
                 .expect(401)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INCORRECT_LOGIN)
                 })
         })
 
-        it('should reject login if bad syntax', () => {
+        it('should reject login if data has unexpected format', () => {
             return request(app)
                 .post('/')
                 .type('application/json')
@@ -120,7 +130,7 @@ describe('Login service', () => {
                 .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INVALID_FORMAT)
                 })
             .then(() => request(app)
                 .post('/')
@@ -129,7 +139,7 @@ describe('Login service', () => {
                 .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INVALID_FORMAT)
                 })
             )
         })
@@ -149,7 +159,7 @@ describe('Login service', () => {
                 .expect(401)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INCORRECT_LOGIN)
                 })
         })
     
@@ -168,7 +178,7 @@ describe('Login service', () => {
                 .expect(401)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INCORRECT_LOGIN)
                 })
         })
 
@@ -196,9 +206,7 @@ describe('Login service', () => {
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expect(res.body).toHaveProperty('success', true)
-                    expect(res.body).not.toHaveProperty('forceReset')
-                    expect(res.body).not.toHaveProperty('resetToken')
+                    expectSuccessLoginBody(res)
                 })
         })
 
@@ -212,9 +220,7 @@ describe('Login service', () => {
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expect(res.body).toHaveProperty('success', true)
-                    expect(res.body).not.toHaveProperty('forceReset')
-                    expect(res.body).not.toHaveProperty('resetToken')
+                    expectSuccessLoginBody(res)
                 })
         })
 
@@ -228,7 +234,7 @@ describe('Login service', () => {
                 .expect(401)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INCORRECT_LOGIN)
                 })
         })
 
@@ -240,7 +246,7 @@ describe('Login service', () => {
                 .expect(401)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INCORRECT_LOGIN)
                 })
         })
 
@@ -252,11 +258,11 @@ describe('Login service', () => {
                 .expect(401)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INCORRECT_LOGIN)
                 })
         })
 
-        it('should reject login if bad syntax', () => {
+        it('should reject login if data has unexpected syntax', () => {
             return request(app)
                 .post('/')
                 .type('application/json')
@@ -264,7 +270,7 @@ describe('Login service', () => {
                 .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INVALID_FORMAT)
                 })
             .then(() => request(app)
                 .post('/')
@@ -273,7 +279,7 @@ describe('Login service', () => {
                 .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INVALID_FORMAT)
                 })
             )
             .then(() => request(app)
@@ -283,7 +289,7 @@ describe('Login service', () => {
                 .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INVALID_FORMAT)
                 })
             )
         })
@@ -300,7 +306,7 @@ describe('Login service', () => {
                 .expect(401)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailedLoginBody(res)
+                    expectFailedLoginBody(res, LoginErrors.INCORRECT_LOGIN)
                 })
             )
         })

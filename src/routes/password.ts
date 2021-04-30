@@ -20,7 +20,8 @@ export interface PasswordResponseBody {
 export const PasswordErrors: {[key: string]: string} = {
     INVALID_FORMAT: 'Request data had invalid format',
     INCORRECT_TOKEN: 'Token or user was incorrect',
-    EXPIRED_TOKEN: 'Token was expired'
+    EXPIRED_TOKEN: 'Token was expired',
+    INTERNAL: 'Server had a problem, please try again'
 }
 
 const reqToRequestBody = (req: any): PasswordRequestBody | null => {
@@ -53,7 +54,14 @@ export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
             return
         }
         if (body.user === cleanEmail(env.INITIAL_ADMIN)) {
-            const token = await pwtokensTable.findByToken(body.token)
+            let token
+            try {
+                token = await pwtokensTable.findByToken(body.token)
+            } catch (e) {
+                res.statusCode = 500
+                res.json({ success: false, error: PasswordErrors.INTERNAL } as PasswordResponseBody)
+                return
+            }
             if (token) {
                 if (token.expired) {
                     res.statusCode = 403
@@ -66,7 +74,13 @@ export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
                     password: req.body.newPassword,
                     admin: true
                 }
-                await usersTable.create(user)
+                try {
+                    await usersTable.create(user)
+                } catch (e) {
+                    res.statusCode = 500
+                    res.json({ success: false, error: PasswordErrors.INTERNAL } as PasswordResponseBody)
+                    return
+                }
                 res.statusCode = 200
                 res.json({ success: true } as PasswordResponseBody)
                 return

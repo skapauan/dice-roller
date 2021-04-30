@@ -3,11 +3,13 @@ import express from 'express'
 import format from 'pg-format'
 import getRouter, { PasswordErrors } from './password'
 import { jsonErrors } from '../middleware/json'
+import { getDbMock, exampleQueryResult } from '../test/mock/db.test'
 import { testConfig, getTestSchema } from '../test/config/db.test'
 import DB from '../db/db'
 import PwTokensTable from '../db/pwtokens'
 import UsersTable from '../db/users'
 import { cleanEmail } from '../string/string'
+import { QueryResult } from 'pg'
 
 const schema = getTestSchema()
 const db = new DB(testConfig, schema)
@@ -103,6 +105,57 @@ describe('Password service', () => {
                     expect(passwordMatches).toEqual(true)
                 })
             )
+        })
+
+        it('handles exceptions from pwtokensTable.findByToken()', () => {
+            const DBMock = getDbMock([])
+            const db2 = new DBMock(testConfig, schema)
+            const initialAdmin = 'initial.admin@example.com'
+            const env2 = { INITIAL_ADMIN: initialAdmin }
+            const newPassword = 'my new password'
+            
+            const app2 = express()
+            app2.use('/', getRouter(db2, env2))
+
+            return pwtokensTable.create(-999)
+            .then((token) => request(app2)
+                .post('/')
+                .type('application/json')
+                .send({ token, user: initialAdmin, newPassword })
+                .expect(500)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailBody(res, PasswordErrors.INTERNAL)
+                })
+            )
+        })
+
+        it('handles exceptions from usersTable.create()', () => {
+            const result: QueryResult = { ...exampleQueryResult }
+            result.rows[0] = {
+                pwtoken_id: 0,
+                token: 'mock token',
+                user_id: -999,
+                expires: new Date().setTime(Date.now() + 1000*60*60)
+            }
+            const DBMock = getDbMock([result])
+            const db2 = new DBMock(testConfig, schema)
+            const initialAdmin = 'initial.admin@example.com'
+            const env2 = { INITIAL_ADMIN: initialAdmin }
+            const newPassword = 'my new password'
+            
+            const app2 = express()
+            app2.use('/', getRouter(db2, env2))
+
+            return request(app2)
+                .post('/')
+                .type('application/json')
+                .send({ token: result.rows[0].token, user: initialAdmin, newPassword })
+                .expect(500)
+                .expect('Content-Type', /json/)
+                .then((res) => {
+                    expectFailBody(res, PasswordErrors.INTERNAL)
+                })
         })
 
         it('does not create initial admin user if request is missing the token', () => {

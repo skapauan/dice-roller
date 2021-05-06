@@ -64,8 +64,7 @@ const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
         } else {
             // Check against users in table
             const userData = await usersTable.findByEmail(body.user)
-            if (userData && typeof userData.password === 'string'
-                    && await usersTable.checkPassword(body.password, userData)) {
+            if (await usersTable.checkPassword(body.password, userData)) {
                 res.statusCode = 200
                 res.json({ success: true } as LoginResponseBody)
                 return

@@ -117,8 +117,8 @@ export default class UsersTable {
         return insertResult.rows[0].user_id
     }
 
-    async checkPassword(password: string, userData: UserResult): Promise<boolean> {
-        if (typeof userData.password !== 'string') {
+    async checkPassword(password: string, userData: UserResult | null): Promise<boolean> {
+        if (!userData || typeof userData.password !== 'string') {
             return false
         }
         try {

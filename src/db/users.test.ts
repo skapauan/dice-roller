@@ -19,13 +19,16 @@ afterAll(() => {
 })
 
 const insertUser = (config?: {email: string, nickname?: string, password?: string, 
-                                admin?: boolean, client?: PoolClient}) => {
+                                admin?: boolean, client?: PoolClient}): Promise<number> => {
     let { email, nickname, password, admin, client } = config || {}
     return db.query({
         text: format(`INSERT INTO %I.users (email, nickname, password, admin)
-            VALUES ($1, $2, $3, $4);`, schema),
+            VALUES ($1, $2, $3, $4) RETURNING user_id;`, schema),
         values: [email, nickname, password, admin]
     }, client)
+    .then((insertResult) => {
+        return insertResult.rows[0].user_id
+    })
 }
 
 const deleteUsers = (config?: {email?: string, id?: number, client?: PoolClient}) => {
@@ -88,17 +91,17 @@ describe('Users table', () => {
             const client = await db.getClient()
             try {
                 await deleteUsers({email, client})
-                await insertUser({email, nickname, password, admin, client})
+                const user_id = await insertUser({email, nickname, password, admin, client})
                 const result = await usersTable.findByEmail(email, client)
                 expect(result).not.toBeNull()
                 if (!result) return // make ts compiler happy
                 expect(result).toMatchObject({
+                    user_id,
                     email,
                     nickname,
                     password,
                     admin
                 })
-                expect(typeof result.user_id).toEqual('number')
             } catch (error) {
                 throw error
             } finally {
@@ -107,23 +110,22 @@ describe('Users table', () => {
         })
 
         it('returns info for the user that has the equivalent email', async () => {
-            const email1 = 'ChipMunk@example.com'
-            const email2 = ' \t chipmunk@example.com \r\n  '
-            expect(cleanEmail(email1)).toEqual(cleanEmail(email2))
+            const email2 = ' \t ChipMunk@example.com \r\n  '
+            expect(cleanEmail(email2)).toEqual(email)
             const client = await db.getClient()
             try {
-                await deleteUsers({email: email1, client})
-                await insertUser({email: email1, nickname, password, admin, client})
+                await deleteUsers({email, client})
+                const user_id = await insertUser({email, nickname, password, admin, client})
                 const result = await usersTable.findByEmail(email2, client)
                 expect(result).not.toBeNull()
                 if (!result) return // make ts compiler happy
                 expect(result).toMatchObject({
-                    email: cleanEmail(email2),
+                    user_id,
+                    email,
                     nickname,
                     password,
                     admin
                 })
-                expect(typeof result.user_id).toEqual('number')
             } catch (error) {
                 throw error
             } finally {
@@ -198,14 +200,9 @@ describe('Users table', () => {
                 const password = 'password' + parseInt((Math.random() * 1000000000).toString(), 10)
                 const admin = false
                 await deleteUsers({email, client})
-                await insertUser({email, nickname, password, admin, client})
-                // Get user_id of the added user
-                const resultByEmail = await usersTable.findByEmail(email, client)
-                expect(resultByEmail).not.toBeNull()
-                if (!resultByEmail) return // make ts compiler happy
-                expect(typeof resultByEmail.user_id).toEqual('number')
+                const user_id = await insertUser({email, nickname, password, admin, client})
                 // Test findById
-                const resultById = await usersTable.findById(resultByEmail.user_id, client)
+                const resultById = await usersTable.findById(user_id, client)
                 expect(resultById).not.toBeNull()
                 if (!resultById) return // make ts compiler happy
                 expect(resultById).toMatchObject({

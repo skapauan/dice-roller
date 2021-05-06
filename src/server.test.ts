@@ -7,7 +7,8 @@ import PwtokensTable from './db/pwtokens'
 
 const schema = getTestSchema()
 const db = new DB(testConfig, schema)
-const server = getServer(db, path.join(__dirname, '..', 'public'), {})
+const env = { INITIAL_ADMIN: 'admin@example.com', INITIAL_PASSWORD: 'adminpassword'}
+const server = getServer(db, path.join(__dirname, '..', 'public'), env)
 const pwtokensTable = new PwtokensTable(db)
 
 beforeAll(async () => {
@@ -51,7 +52,6 @@ describe('Server', () => {
                 .type('application/json')
                 .send({
                     token: 'mystery token',
-                    user: 'mystery@example.com',
                     newPassword: 'mystery password'
                 })
                 .expect(403)

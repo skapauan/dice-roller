@@ -43,12 +43,12 @@ describe('Password service', () => {
             await db.query(format('DELETE FROM %I.users;', schema))
         })
 
-        it('creates initial admin user if token exists and is not expired, and user is valid email INITIAL_ADMIN', () => {
+        it('creates initial admin user if token exists and is not expired', () => {
             return pwtokensTable.create(-999)
             .then((token) => request(app)
                 .post('/')
                 .type('application/json')
-                .send({ token, user: initialAdmin, newPassword })
+                .send({ token, newPassword })
                 .expect(200)
                 .expect('Content-Type', /json/)
                 .then((res) => {
@@ -71,57 +71,19 @@ describe('Password service', () => {
             )
         })
 
-        it('creates initial admin user if email is equivalent to INITIAL_ADMIN', () => {
-            const env2 = { INITIAL_ADMIN: '  Ada.Lovelace+home@googlemail.com' }
-            const cleanAdmin = cleanEmail(env2.INITIAL_ADMIN) || ''
-            const equivAdmin = 'adalovelace+office@gmail.com \t '
-            expect(cleanEmail(equivAdmin)).toEqual(cleanAdmin)
-
-            const app2 = express()
-            app2.use('/', getRouter(db, env2))
-
-            return pwtokensTable.create(-999)
-            .then((token) => request(app2)
-                .post('/')
-                .type('application/json')
-                .send({ token, user: equivAdmin, newPassword })
-                .expect(200)
-                .expect('Content-Type', /json/)
-                .then((res) => {
-                    expect(res.body).toHaveProperty('success', true)
-                    return usersTable.findByEmail(cleanAdmin)
-                })
-                .then((user) => {
-                    expect(user).not.toBeNull()
-                    if (!user) return false // make ts compiler happy
-                    expect(user).toMatchObject({
-                        email: cleanAdmin,
-                        nickname: 'Admin',
-                        admin: true
-                    })
-                    return usersTable.checkPassword(newPassword, user)
-                })
-                .then((passwordMatches) => {
-                    expect(passwordMatches).toEqual(true)
-                })
-            )
-        })
-
         it('handles exceptions from pwtokensTable.findByToken()', () => {
             const DBMock = getDbMock([])
             const db2 = new DBMock(testConfig, schema)
-            const initialAdmin = 'initial.admin@example.com'
-            const env2 = { INITIAL_ADMIN: initialAdmin }
             const newPassword = 'my new password'
             
             const app2 = express()
-            app2.use('/', getRouter(db2, env2))
+            app2.use('/', getRouter(db2, env))
 
             return pwtokensTable.create(-999)
             .then((token) => request(app2)
                 .post('/')
                 .type('application/json')
-                .send({ token, user: initialAdmin, newPassword })
+                .send({ token, newPassword })
                 .expect(500)
                 .expect('Content-Type', /json/)
                 .then((res) => {
@@ -140,17 +102,15 @@ describe('Password service', () => {
             }
             const DBMock = getDbMock([result])
             const db2 = new DBMock(testConfig, schema)
-            const initialAdmin = 'initial.admin@example.com'
-            const env2 = { INITIAL_ADMIN: initialAdmin }
             const newPassword = 'my new password'
             
             const app2 = express()
-            app2.use('/', getRouter(db2, env2))
+            app2.use('/', getRouter(db2, env))
 
             return request(app2)
                 .post('/')
                 .type('application/json')
-                .send({ token: result.rows[0].token, user: initialAdmin, newPassword })
+                .send({ token: result.rows[0].token, newPassword })
                 .expect(500)
                 .expect('Content-Type', /json/)
                 .then((res) => {
@@ -160,18 +120,18 @@ describe('Password service', () => {
 
         it('does not create initial admin user if request is missing the token', () => {
             return pwtokensTable.create(-999)
-            .then((token) => request(app)
+            .then(() => request(app)
                 .post('/')
                 .type('application/json')
-                .send({ user: initialAdmin, newPassword })
+                .send({ newPassword })
                 .expect(400)
                 .expect('Content-Type', /json/)
                 .then((res) => {
                     expectFailBody(res, PasswordErrors.INVALID_FORMAT)
-                    return usersTable.findByEmail(initialAdmin)
+                    return usersTable.isEmpty()
                 })
-                .then((user) => {
-                    expect(user).toBeNull()
+                .then((empty) => {
+                    expect(empty).toEqual(true)
                 })
             )
         })
@@ -182,15 +142,15 @@ describe('Password service', () => {
             .then(() => request(app)
                 .post('/')
                 .type('application/json')
-                .send({ token, user: initialAdmin, newPassword })
+                .send({ token, newPassword })
                 .expect(403)
                 .expect('Content-Type', /json/)
                 .then((res) => {
                     expectFailBody(res, PasswordErrors.INCORRECT_TOKEN)
-                    return usersTable.findByEmail(initialAdmin)
+                    return usersTable.isEmpty()
                 })
-                .then((user) => {
-                    expect(user).toBeNull()
+                .then((empty) => {
+                    expect(empty).toEqual(true)
                 })
             )
         })
@@ -209,64 +169,20 @@ describe('Password service', () => {
             .then(() => request(app)
                 .post('/')
                 .type('application/json')
-                .send({ token, user: initialAdmin, newPassword })
+                .send({ token, newPassword })
                 .expect(403)
                 .expect('Content-Type', /json/)
                 .then((res) => {
                     expectFailBody(res, PasswordErrors.EXPIRED_TOKEN)
-                    return usersTable.findByEmail(initialAdmin)
+                    return usersTable.isEmpty()
                 })
-                .then((user) => {
-                    expect(user).toBeNull()
-                })
-            )
-        })
-
-        it('does not create initial admin user if request is missing the user', () => {
-            return pwtokensTable.create(-999)
-            .then((token) => request(app)
-                .post('/')
-                .type('application/json')
-                .send({ token, newPassword })
-                .expect(400)
-                .expect('Content-Type', /json/)
-                .then((res) => {
-                    expectFailBody(res, PasswordErrors.INVALID_FORMAT)
-                    return usersTable.findByEmail(initialAdmin)
-                })
-                .then((user) => {
-                    expect(user).toBeNull()
-                })
-            )
-        })
-
-        it('does not create initial admin user if user is not INITIAL_ADMIN', () => {
-            const notAdminUser = 'NotAdmin@example.com'
-            return pwtokensTable.create(-999)
-            .then((token) => request(app)
-                .post('/')
-                .type('application/json')
-                .send({ token, user: notAdminUser, newPassword })
-                .expect(403)
-                .expect('Content-Type', /json/)
-                .then((res) => {
-                    expectFailBody(res, PasswordErrors.INCORRECT_TOKEN)
-                    return usersTable.findByEmail(initialAdmin)
-                })
-                .then((user) => {
-                    expect(user).toBeNull()
-                })
-                .then(() => {
-                    return usersTable.findByEmail(notAdminUser)
-                })
-                .then((user) => {
-                    expect(user).toBeNull()
+                .then((empty) => {
+                    expect(empty).toEqual(true)
                 })
             )
         })
 
         it('does not create initial admin user if INITIAL_ADMIN is not set', () => {
-            const email = 'some.email@example.com'
             const env2 = {}
             const app2 = express()
             app2.use('/', getRouter(db, env2))
@@ -274,15 +190,15 @@ describe('Password service', () => {
             .then((token) => request(app2)
                 .post('/')
                 .type('application/json')
-                .send({ token, user: email, newPassword })
-                .expect(403)
+                .send({ token, newPassword })
+                .expect(500)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailBody(res, PasswordErrors.INCORRECT_TOKEN)
-                    return usersTable.findByEmail(email)
+                    expectFailBody(res, PasswordErrors.MISSING_CONFIG)
+                    return usersTable.isEmpty()
                 })
-                .then((user) => {
-                    expect(user).toBeNull()
+                .then((empty) => {
+                    expect(empty).toEqual(true)
                 })
             )
         })
@@ -295,15 +211,15 @@ describe('Password service', () => {
             .then((token) => request(app2)
                 .post('/')
                 .type('application/json')
-                .send({ token, user: env2.INITIAL_ADMIN, newPassword })
-                .expect(400)
+                .send({ token, newPassword })
+                .expect(500)
                 .expect('Content-Type', /json/)
                 .then((res) => {
-                    expectFailBody(res, PasswordErrors.INVALID_FORMAT)
-                    return usersTable.findByEmail(env2.INITIAL_ADMIN)
+                    expectFailBody(res, PasswordErrors.MISSING_CONFIG)
+                    return usersTable.isEmpty()
                 })
-                .then((user) => {
-                    expect(user).toBeNull()
+                .then((empty) => {
+                    expect(empty).toEqual(true)
                 })
             )
         })

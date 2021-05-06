@@ -8,7 +8,6 @@ import PwTokensTable from '../db/pwtokens.js'
 
 export interface PasswordRequestBody {
     token: string;
-    user: string;
     newPassword: string;
 }
 
@@ -19,8 +18,9 @@ export interface PasswordResponseBody {
 
 export const PasswordErrors: {[key: string]: string} = {
     INVALID_FORMAT: 'Request data had invalid format',
-    INCORRECT_TOKEN: 'Token or user was incorrect',
+    INCORRECT_TOKEN: 'Token was incorrect',
     EXPIRED_TOKEN: 'Token was expired',
+    MISSING_CONFIG: 'Server configuration was missing or invalid',
     INTERNAL: 'Server had a problem, please try again'
 }
 
@@ -29,13 +29,8 @@ const reqToRequestBody = (req: any): PasswordRequestBody | null => {
     if (!body || typeof body.newPassword !== 'string' || typeof body.token !== 'string') {
         return null
     }
-    const user = cleanEmail(body.user)
-    if (!user) {
-        return null
-    }
     return {
         token: body.token,
-        user,
         newPassword: body.newPassword
     }
 }
@@ -53,38 +48,42 @@ export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
             res.json({ success: false, error: PasswordErrors.INVALID_FORMAT } as PasswordResponseBody)
             return
         }
-        if (body.user === cleanEmail(env.INITIAL_ADMIN)) {
-            let token
+        const initialAdmin = cleanEmail(env.INITIAL_ADMIN)
+        if (!initialAdmin) {
+            res.statusCode = 500
+            res.json({ success: false, error: PasswordErrors.MISSING_CONFIG } as PasswordResponseBody)
+            return
+        }
+        let token
+        try {
+            token = await pwtokensTable.findByToken(body.token)
+        } catch (e) {
+            res.statusCode = 500
+            res.json({ success: false, error: PasswordErrors.INTERNAL } as PasswordResponseBody)
+            return
+        }
+        if (token) {
+            if (token.expired) {
+                res.statusCode = 403
+                res.json({ success: false, error: PasswordErrors.EXPIRED_TOKEN } as PasswordResponseBody)
+                return
+            }
+            const user: UserCreate = {
+                email: initialAdmin,
+                nickname: 'Admin',
+                password: req.body.newPassword,
+                admin: true
+            }
             try {
-                token = await pwtokensTable.findByToken(body.token)
+                await usersTable.create(user)
             } catch (e) {
                 res.statusCode = 500
                 res.json({ success: false, error: PasswordErrors.INTERNAL } as PasswordResponseBody)
                 return
             }
-            if (token) {
-                if (token.expired) {
-                    res.statusCode = 403
-                    res.json({ success: false, error: PasswordErrors.EXPIRED_TOKEN } as PasswordResponseBody)
-                    return
-                }
-                const user: UserCreate = {
-                    email: body.user,
-                    nickname: 'Admin',
-                    password: req.body.newPassword,
-                    admin: true
-                }
-                try {
-                    await usersTable.create(user)
-                } catch (e) {
-                    res.statusCode = 500
-                    res.json({ success: false, error: PasswordErrors.INTERNAL } as PasswordResponseBody)
-                    return
-                }
-                res.statusCode = 200
-                res.json({ success: true } as PasswordResponseBody)
-                return
-            }
+            res.statusCode = 200
+            res.json({ success: true } as PasswordResponseBody)
+            return
         }
         res.statusCode = 403
         res.json({ success: false, error: PasswordErrors.INCORRECT_TOKEN } as PasswordResponseBody)

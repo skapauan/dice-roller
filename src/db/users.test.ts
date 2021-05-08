@@ -331,7 +331,7 @@ describe('Users table', () => {
             user.password = undefined
             const id = await usersTable.create(user)
             const info = await usersTable.findById(id)
-            expect(info).toMatchObject(convertToResult(user))
+            expect(info).toMatchObject({...convertToResult(user), password: null})
         })
 
         it('rejects, throws, and does not affect existing user if email is already registered',

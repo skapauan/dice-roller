@@ -11,6 +11,14 @@ export interface UserCreate {
     admin?: boolean;
 }
 
+export interface UserUpdate {
+    user_id: number;
+    email?: string;
+    nickname?: string;
+    password?: string | undefined;
+    admin?: boolean;
+}
+
 export interface UserResult {
     user_id: number;
     email: string;
@@ -115,6 +123,39 @@ export default class UsersTable {
             values: [email, user.nickname?.trim(), password, user.admin]
         }, client)
         return insertResult.rows[0].user_id
+    }
+
+    async update(user: UserUpdate, client?: PoolClient): Promise<UserResult | null> {
+        const values = []
+        let text = 'UPDATE %I.users SET'
+        let i = 1
+        const email = cleanEmail(user.email)
+        if (email) {
+            values.push(email)
+            text += ` email = $${i++},`
+        }
+        if ('nickname' in user && typeof user.nickname === 'string') {
+            values.push(user.nickname.trim())
+            text += ` nickname = $${i++},`
+        }
+        if ('password' in user) {
+            if (typeof user.password === 'string') {
+                values.push(await argon2.hash(user.password))
+                text += ` password = $${i++},`
+            }
+        }
+        if ('admin' in user && typeof user.admin === 'boolean') {
+            values.push(user.admin)
+            text += ` admin = $${i++},`
+        }
+        values.push(user.user_id)
+        text = text.slice(0, -1) // remove last comma
+        text += ` WHERE user_id = $${i} RETURNING *;`
+        const result = await this.db.query({
+            text: format(text, this.db.schema),
+            values
+        }, client)
+        return result.rowCount === 0 ? null : { ...result.rows[0] }
     }
 
     async checkPassword(password: string, userData: UserResult | null): Promise<boolean> {

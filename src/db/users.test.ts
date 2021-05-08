@@ -415,4 +415,40 @@ describe('Users table', () => {
 
     })
 
+    describe('update', () => {
+
+        const gp: UserCreate = {
+            email: 'guineapig@example.com',
+            nickname: 'Guinea Pig',
+            password: 'caviidae63',
+            admin: false
+        }
+        let user_id = -999
+
+        beforeEach(async () => {
+            await deleteUsers()
+            user_id = await insertUser(gp)
+        })
+
+        it('updates existing user with the ID and returns the updated info', async () => {
+            const update = {
+                user_id,
+                email: ' \t  Guinea-Pig@example.com  \r\n ',
+                nickname: ' Sir Pig of Guinea ',
+                password: 'Cav11d43',
+                admin: true
+            }
+            const match = {
+                user_id,
+                email: cleanEmail(update.email),
+                nickname: update.nickname.trim(),
+                admin: true
+            }
+            const result = await usersTable.update(update)
+            expect(result).toMatchObject(match)
+            expect(await usersTable.checkPassword(update.password, result)).toEqual(true)
+        })
+
+    })
+
 })

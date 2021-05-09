@@ -14,8 +14,8 @@ export interface UserCreate {
 export interface UserUpdate {
     user_id: number;
     email?: string;
-    nickname?: string;
-    password?: string | undefined;
+    nickname?: string | null;
+    password?: string | null;
     admin?: boolean;
 }
 
@@ -126,6 +126,11 @@ export default class UsersTable {
     }
 
     async update(user: UserUpdate, client?: PoolClient): Promise<UserResult | null> {
+        if (!user || typeof user.user_id !== 'number') {
+            // Cannot proceed without user_id
+            return Promise.resolve(null)
+        }
+        // Construct query
         const values = []
         let text = 'UPDATE %I.users SET'
         let i = 1
@@ -134,13 +139,23 @@ export default class UsersTable {
             values.push(email)
             text += ` email = $${i++},`
         }
-        if ('nickname' in user && typeof user.nickname === 'string') {
-            values.push(user.nickname.trim())
-            text += ` nickname = $${i++},`
+        if ('nickname' in user) {
+            if (typeof user.nickname === 'string') {
+                values.push(user.nickname.trim())
+                text += ` nickname = $${i++},`
+            }
+            if (user.nickname === null) {
+                values.push(undefined)
+                text += ` nickname = $${i++},`
+            }
         }
         if ('password' in user) {
             if (typeof user.password === 'string') {
                 values.push(await argon2.hash(user.password))
+                text += ` password = $${i++},`
+            }
+            if (user.password === null) {
+                values.push(undefined)
                 text += ` password = $${i++},`
             }
         }
@@ -148,9 +163,14 @@ export default class UsersTable {
             values.push(user.admin)
             text += ` admin = $${i++},`
         }
+        if (values.length === 0) {
+            // No valid info given to update
+            return Promise.resolve(null)
+        }
         values.push(user.user_id)
         text = text.slice(0, -1) // remove last comma
         text += ` WHERE user_id = $${i} RETURNING *;`
+        // Make query
         const result = await this.db.query({
             text: format(text, this.db.schema),
             values

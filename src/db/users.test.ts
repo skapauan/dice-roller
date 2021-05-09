@@ -416,14 +416,18 @@ describe('Users table', () => {
     })
 
     describe('update', () => {
-
-        const gp: UserCreate = {
+        const plaintextPassword = 'caviidae63'
+        const gp = {
             email: 'guineapig@example.com',
             nickname: 'Guinea Pig',
-            password: 'caviidae63',
+            password: 'hash the plaintext password here',
             admin: false
         }
         let user_id = -999
+
+        beforeAll(async () => {
+            gp.password = await argon2.hash(plaintextPassword)
+        })
 
         beforeEach(async () => {
             await deleteUsers()
@@ -447,6 +451,67 @@ describe('Users table', () => {
             const result = await usersTable.update(update)
             expect(result).toMatchObject(match)
             expect(await usersTable.checkPassword(update.password, result)).toEqual(true)
+        })
+
+        it('does not update fields that are not provided', async () => {
+            const update = {
+                user_id,
+                email: ' guinea.pig+party@example.com ',
+                admin: !gp.admin
+            }
+            const match = {
+                user_id,
+                email: cleanEmail(update.email),
+                nickname: gp.nickname,
+                admin: update.admin
+            }
+            const result = await usersTable.update(update)
+            expect(result).toMatchObject(match)
+            expect(await usersTable.checkPassword(plaintextPassword, result)).toEqual(true)
+        })
+
+        it('can set the password or nickname to null', async () => {
+            const update = {
+                user_id,
+                nickname: null,
+                password: null
+            }
+            const match = {
+                user_id,
+                email: gp.email,
+                nickname: null,
+                password: null,
+                admin: gp.admin
+            }
+            const result = await usersTable.update(update)
+            expect(result).toMatchObject(match)
+        })
+
+        it('returns null if no user with the ID exists', async () => {
+            const update = {
+                user_id: user_id + 1,
+                admin: true
+            }
+            const result = await usersTable.update(update)
+            expect(result).toBeNull()
+        })
+
+        it('returns null if the ID is not a number', async () => {
+            const update = {
+                user_id: 'awesome',
+                admin: true
+            }
+            const result = await usersTable.update(update as any)
+            expect(result).toBeNull()
+        })
+
+        it('returns null if there is no valid info given to update', async () => {
+            const update = {
+                user_id,
+                nickname: 12345
+            }
+            const result = await usersTable.update(update as any)
+            expect(result).toBeNull()
         })
 
     })

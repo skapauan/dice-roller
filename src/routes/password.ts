@@ -3,7 +3,7 @@ import bodyParser from 'body-parser'
 import { cleanEmail } from '../string/string.js'
 import { jsonPreCheck, jsonCheck } from '../middleware/json.js'
 import DB from '../db/db.js'
-import UsersTable, { UserCreate } from '../db/users.js'
+import UsersTable, { UserCreate, UserUpdate } from '../db/users.js'
 import PwTokensTable from '../db/pwtokens.js'
 
 export interface PasswordRequestBody {
@@ -35,6 +35,11 @@ const reqToRequestBody = (req: any): PasswordRequestBody | null => {
     }
 }
 
+const respondInternalError = (res: Response): void => {
+    res.statusCode = 500
+    res.json({ success: false, error: PasswordErrors.INTERNAL } as PasswordResponseBody)
+}
+
 export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
     const usersTable = new UsersTable(db)
     const pwtokensTable = new PwTokensTable(db)
@@ -42,53 +47,92 @@ export const getRouter = (db: DB, env: NodeJS.ProcessEnv) => {
     router.route('/')
     .post(jsonPreCheck, bodyParser.json(), jsonCheck,
             async (req: Request, res: Response, next: NextFunction) => {
+        // Verify request format
         const body = reqToRequestBody(req)
         if (!body) {
             res.statusCode = 400
             res.json({ success: false, error: PasswordErrors.INVALID_FORMAT } as PasswordResponseBody)
             return
         }
-        const initialAdmin = cleanEmail(env.INITIAL_ADMIN)
-        if (!initialAdmin) {
-            res.statusCode = 500
-            res.json({ success: false, error: PasswordErrors.MISSING_CONFIG } as PasswordResponseBody)
-            return
-        }
+        // Verify token
         let token
         try {
             token = await pwtokensTable.findByToken(body.token)
         } catch (e) {
-            res.statusCode = 500
-            res.json({ success: false, error: PasswordErrors.INTERNAL } as PasswordResponseBody)
+            respondInternalError(res)
             return
         }
-        if (token) {
-            if (token.expired) {
-                res.statusCode = 403
-                res.json({ success: false, error: PasswordErrors.EXPIRED_TOKEN } as PasswordResponseBody)
+        if (!token) {
+            res.statusCode = 403
+            res.json({ success: false, error: PasswordErrors.INCORRECT_TOKEN } as PasswordResponseBody)
+            return
+        }
+        if (token.expired) {
+            res.statusCode = 403
+            res.json({ success: false, error: PasswordErrors.EXPIRED_TOKEN } as PasswordResponseBody)
+            return
+        }
+        // Create admin user if users table is empty
+        let noUsers
+        try {
+            noUsers = await usersTable.isEmpty()
+        } catch (e) {
+            respondInternalError(res)
+            return
+        }
+        if (noUsers) {
+            const email = cleanEmail(env.INITIAL_ADMIN)
+            if (!email) {
+                res.statusCode = 500
+                res.json({ success: false, error: PasswordErrors.MISSING_CONFIG } as PasswordResponseBody)
                 return
             }
-            const user: UserCreate = {
-                email: initialAdmin,
+            const admin: UserCreate = {
+                email,
                 nickname: 'Admin',
-                password: req.body.newPassword,
+                password: body.newPassword,
                 admin: true
             }
             try {
-                await usersTable.create(user)
+                await usersTable.create(admin)
             } catch (e) {
-                res.statusCode = 500
-                res.json({ success: false, error: PasswordErrors.INTERNAL } as PasswordResponseBody)
+                respondInternalError(res)
                 return
             }
             res.statusCode = 200
             res.json({ success: true } as PasswordResponseBody)
             return
         }
+        // Update password for existing user
+        let user
+        try {
+            user = await usersTable.findById(token.user_id)
+        } catch (e) {
+            respondInternalError(res)
+            return
+        }
+        if (user) {
+            const update: UserUpdate = {
+                user_id: token.user_id,
+                password: body.newPassword 
+            }
+            let updateResult
+            try {
+                updateResult = await usersTable.update(update)
+            } catch (e) {
+                respondInternalError(res)
+                return
+            }
+            if (updateResult) {
+                res.statusCode = 200
+                res.json({ success: true } as PasswordResponseBody)
+                return
+            }
+        }
         res.statusCode = 403
         res.json({ success: false, error: PasswordErrors.INCORRECT_TOKEN } as PasswordResponseBody)
-        return
     })
+
     return router
 }
 
